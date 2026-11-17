@@ -1,0 +1,17 @@
+{
+  "bank": {
+    "bankName": "TECHCOMBANK",
+    "accountNo": "2009222222",
+    "accountName": "HOANG THI HANH"
+  },
+  "sheet": {
+    "webhookUrl": "https://script.google.com/macros/s/AKfycbwu0-xJJ9OWUaVkGHtEBDD7K2KvEbujSLDZz4gk18NadTafc96fkzle3IlwxotbIyNn/exec",
+    "enabled": true
+  },
+  "telegram": {
+    "token": "",
+    "chatId": "",
+    "enabled": false
+  },
+  "updatedAt": "2026-11-17T06:13:17.431Z"
+}
