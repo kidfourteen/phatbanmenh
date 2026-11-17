@@ -1,0 +1,160 @@
+{
+  "THIEN_THU": {
+    "id": "THIEN_THU",
+    "name": "Thiên Thủ Thiên Nhãn",
+    "fullName": "Thiên Thủ Thiên Nhãn Bồ Tát",
+    "zodiacs": [
+      "Tý"
+    ],
+    "zodiacBadge": "Tuổi Tý",
+    "tags": [
+      "Trí tuệ sáng suốt",
+      "Tránh xa tiểu nhân",
+      "Hộ mệnh bình an"
+    ],
+    "shortDesc": "Pháp tướng nghìn mắt nghìn tay đúc từ Đồng Thau Nguyên Khối soi thấu trần gian, hóa giải tai ương.",
+    "price": 349,
+    "oldPrice": 999,
+    "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
+    "images": [
+      "https://res.cloudinary.com/qwrz7i1s/image/upload/v1794892348/phatbanmenh/yyzoiraickze5ctr0ldg.webp"
+    ]
+  },
+  "HU_KHONG_TANG": {
+    "id": "HU_KHONG_TANG",
+    "name": "Hư Không Tạng Bồ Tát",
+    "fullName": "Hư Không Tạng Bồ Tát",
+    "zodiacs": [
+      "Sửu",
+      "Dần"
+    ],
+    "zodiacBadge": "Tuổi Sửu • Dần",
+    "tags": [
+      "Chiêu tài tụ lộc",
+      "Giữ vững kho tiền",
+      "Định tâm sáng trí"
+    ],
+    "shortDesc": "Chủ tôn kho tàng phước đức bằng Đồng Thau Nguyên Khối, giúp tụ tài và điều hòa tâm tính.",
+    "price": 349,
+    "oldPrice": 999,
+    "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
+    "images": []
+  },
+  "VAN_THU": {
+    "id": "VAN_THU",
+    "name": "Văn Thù Sư Lợi Bồ Tát",
+    "fullName": "Văn Thù Sư Lợi Bồ Tát",
+    "zodiacs": [
+      "Mão"
+    ],
+    "zodiacBadge": "Tuổi Mão",
+    "tags": [
+      "Khai mở trí tuệ",
+      "Quyết đoán bứt phá",
+      "Công danh thăng tiến"
+    ],
+    "shortDesc": "Thanh gươm trí tuệ chặt đứt phiền não, đại cát trong học vấn và sự nghiệp.",
+    "price": 349,
+    "oldPrice": 999,
+    "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
+    "images": []
+  },
+  "PHO_HIEN": {
+    "id": "PHO_HIEN",
+    "name": "Phổ Hiền Bồ Tát",
+    "fullName": "Phổ Hiền Bồ Tát",
+    "zodiacs": [
+      "Thìn",
+      "Tỵ"
+    ],
+    "zodiacBadge": "Tuổi Thìn • Tỵ",
+    "tags": [
+      "Thu phục nhân tâm",
+      "Quý nhân trợ lực",
+      "Vững vàng quyền uy"
+    ],
+    "shortDesc": "Ngự voi trắng 6 ngà uy nghiêm, biến thử thách thành đại nghiệp.",
+    "price": 349,
+    "oldPrice": 999,
+    "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
+    "images": []
+  },
+  "DAI_THE_CHI": {
+    "id": "DAI_THE_CHI",
+    "name": "Đại Thế Chí Bồ Tát",
+    "fullName": "Đại Thế Chí Bồ Tát",
+    "zodiacs": [
+      "Ngọ"
+    ],
+    "zodiacBadge": "Tuổi Ngọ",
+    "tags": [
+      "Ánh sáng dẫn lối",
+      "Thượng lộ bình an",
+      "Tích lũy tài sản"
+    ],
+    "shortDesc": "Ánh sáng trí tuệ tối thượng giúp kiên định mục tiêu và bình an vạn dặm.",
+    "price": 349,
+    "oldPrice": 999,
+    "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
+    "images": []
+  },
+  "NHU_LAI_DAI_NHAT": {
+    "id": "NHU_LAI_DAI_NHAT",
+    "name": "Như Lai Đại Nhật",
+    "fullName": "Phật Như Lai Đại Nhật",
+    "zodiacs": [
+      "Mùi",
+      "Thân"
+    ],
+    "zodiacBadge": "Tuổi Mùi • Thân",
+    "tags": [
+      "Hóa giải Thái Tuế",
+      "Dương khí dồi dào",
+      "Phúc huệ song tu"
+    ],
+    "shortDesc": "Ánh mặt trời Phật pháp xua tan bóng tối, bảo hộ năm tuổi bình an.",
+    "price": 349,
+    "oldPrice": 999,
+    "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
+    "images": []
+  },
+  "BAT_DONG_MINH_VUONG": {
+    "id": "BAT_DONG_MINH_VUONG",
+    "name": "Bất Động Minh Vương",
+    "fullName": "Bất Động Minh Vương",
+    "zodiacs": [
+      "Dậu"
+    ],
+    "zodiacBadge": "Tuổi Dậu",
+    "tags": [
+      "Trấn trạch trừ tà",
+      "Hóa giải Tam Tai",
+      "Tâm vững trước bão"
+    ],
+    "shortDesc": "Gươm lửa thiêu rụi chướng ngại, trấn áp tiểu nhân và tà khí.",
+    "price": 349,
+    "oldPrice": 999,
+    "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
+    "images": []
+  },
+  "PHAT_A_DI_DA": {
+    "id": "PHAT_A_DI_DA",
+    "name": "Phật A Di Đà",
+    "fullName": "Đức Phật A Di Đà",
+    "zodiacs": [
+      "Tuất",
+      "Hợi"
+    ],
+    "zodiacBadge": "Tuổi Tuất • Hợi",
+    "tags": [
+      "Phúc thọ viên mãn",
+      "An lạc tâm hồn",
+      "Giữ trọn tài lộc"
+    ],
+    "shortDesc": "Vô Lượng Quang - Vô Lượng Thọ, hóa giải xung sát, gia đạo bình an.",
+    "price": 349,
+    "oldPrice": 999,
+    "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
+    "images": []
+  }
+}
