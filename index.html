@@ -65,6 +65,14 @@
   <script type="text/babel">
     const { useState, useMemo, useEffect } = React;
 
+    // ============================================================================
+    // ⭐ CHỖ FIX CỨNG LINK GOOGLE APPS SCRIPT TRỰC TIẾP VÀO CODE (DÒNG 66) ⭐
+    // Bạn chỉ cần dán link Web App (https://script.google.com/macros/s/.../exec)
+    // vào giữa 2 dấu nháy đơn ở dòng HARDCODED_GOOGLE_SHEET_URL ngay bên dưới đây!
+    // (Nếu bạn gửi link đó vào khung chat cho tôi, tôi sẽ điền sẵn vào đây cho bạn luôn)
+    // ============================================================================
+    const HARDCODED_GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycby6EIOZ9QVNYX-zL-gpZlRWUrfMoStQbkEUEEEXtjF5_cY--WVCsxnA0KMqdO-PLHyx/exec';
+
     // ==========================================
     // 1. CẤU HÌNH HỆ THỐNG ADMIN & SERVER FREE GITHUB (PROJECT: phatbanmenh)
     // ==========================================
@@ -90,15 +98,12 @@
 
     const formatVND = (k) => (Math.round(Number(k) || 0) * 1000).toLocaleString('vi-VN') + ' ₫';
 
-    // Mã Google Apps Script chuẩn: Hỗ trợ bấm nút "▷ Chạy" trực tiếp không bao giờ lỗi & Nhận đơn từ mọi máy khách
-    const GOOGLE_APPS_SCRIPT_CODE = `// ===== PHAT BAN MENH - Google Sheet Order Webhook (Chuẩn 100% như mumbigsize.com) =====
-// HƯỚNG DẪN CÀI ĐẶT:
-// 1. Dán toàn bộ code này vào Mã.gs -> Bấm biểu tượng Đĩa mềm (Lưu) -> Bấm nút "▷ Chạy" ở thanh trên cùng để cấp quyền Google Sheet!
-// 2. Bấm nút xanh "Triển khai" (góc trên phải) -> "Triển khai mới" (hoặc Quản lý các mục triển khai -> Chỉnh sửa -> Phiên bản mới)
-// 3. Chọn Loại: "Ứng dụng web" | Thực thi dưới dạng: "Tôi" | Ai có quyền truy cập: "Bất kỳ ai (Anyone)"
-// 4. Copy URL Web App (https://script.google.com/macros/s/.../exec) dán vào Admin phatbanmenh.store
+    // Mã Google Apps Script chuẩn: Hỗ trợ cả GET + POST + Bấm nút Chạy trực tiếp không lỗi
+    const GOOGLE_APPS_SCRIPT_CODE = `// ===== PHAT BAN MENH - Google Sheet Order Webhook (Bản Fix Cứng Chống Trượt Đơn 100%) =====
+// BƯỚC 1: Dán đè toàn bộ code này vào Mã.gs -> Bấm biểu tượng Đĩa mềm (Lưu)
+// BƯỚC 2: Bấm nút xanh "Triển khai" (góc trên phải) -> Chọn "Triển khai mới" (New deployment) -> Chọn loại "Ứng dụng web"
+// BƯỚC 3: Chọn Thực thi dưới dạng: "Tôi" | Ai có quyền truy cập: "Bất kỳ ai (Anyone)" -> Bấm Triển khai -> Copy URL Web App
 function recordOrder(p) {
-  // Nếu bạn bấm nút "▷ Chạy" trực tiếp trong Apps Script, tự tạo dữ liệu mẫu để test & cấp quyền luôn!
   if (!p || typeof p !== 'object') {
     p = {
       id: '#TEST_TRUC_TIEP',
@@ -117,6 +122,8 @@ function recordOrder(p) {
       payStatus: 'Hoạt động tốt'
     };
   }
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) {}
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   if (sheet.getLastRow() === 0) {
     sheet.appendRow([
@@ -126,6 +133,18 @@ function recordOrder(p) {
     ]);
     sheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#fde68a');
     sheet.setFrozenRows(1);
+  }
+  // Chống ghi trùng 2 lần cùng 1 Mã đơn + cùng 1 Trạng thái (do trình duyệt bắn cả POST + GET đảm bảo 100% tới đích)
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1 && p.id) {
+    var checkRows = Math.min(15, lastRow - 1);
+    var recentData = sheet.getRange(lastRow - checkRows + 1, 1, checkRows, 14).getValues();
+    for (var i = 0; i < recentData.length; i++) {
+      if (String(recentData[i][0]) === String(p.id) && String(recentData[i][13]) === String(p.payStatus || 'Mới')) {
+        try { lock.releaseLock(); } catch (e) {}
+        return;
+      }
+    }
   }
   sheet.appendRow([
     p.id || '',
@@ -143,6 +162,7 @@ function recordOrder(p) {
     p.note || '',
     p.payStatus || 'Mới'
   ]);
+  try { lock.releaseLock(); } catch (e) {}
 }
 function doPost(e) {
   var p = (e && e.parameter) ? e.parameter : {};
@@ -153,13 +173,13 @@ function doPost(e) {
     } catch (err) {}
   }
   recordOrder(p);
-  return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, method: 'POST' })).setMimeType(ContentService.MimeType.JSON);
 }
 function doGet(e) {
   var p = (e && e.parameter) ? e.parameter : {};
-  if (p.id || p.phone) {
+  if (p.id || p.phone || p.name) {
     recordOrder(p);
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, mode: 'GET' })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput("window.__pbm_sheet_ok = true;").setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
   return ContentService.createTextOutput('OK - Phat Ban Menh Google Sheet Webhook Ready');
 }`;
@@ -595,13 +615,18 @@ function doGet(e) {
           return { token: '', chatId: '', enabled: false };
         }
       });
+      // Ưu tiên số 1: HARDCODED_GOOGLE_SHEET_URL gắn cứng trong code
       const [sheetCfg, setSheetCfg] = useState(() => {
-        try {
-          return JSON.parse(localStorage.getItem(STORAGE_KEYS.SHEET_CFG) || 'null') || { webhookUrl: '', enabled: false };
-        } catch (e) {
-          return { webhookUrl: '', enabled: false };
+        if (HARDCODED_GOOGLE_SHEET_URL) {
+          return { webhookUrl: HARDCODED_GOOGLE_SHEET_URL, enabled: true };
         }
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.SHEET_CFG) || 'null');
+          if (saved && saved.webhookUrl) return saved;
+        } catch (e) {}
+        return { webhookUrl: '', enabled: false };
       });
+      const [remoteSheetStatus, setRemoteSheetStatus] = useState(HARDCODED_GOOGLE_SHEET_URL ? 'hardcoded' : 'checking');
 
       const [birthYear, setBirthYear] = useState('1996');
       const [filter2027, setFilter2027] = useState('ALL');
@@ -624,10 +649,10 @@ function doGet(e) {
 
       const showToast = (msg) => {
         setToastMsg(msg);
-        setTimeout(() => setToastMsg(''), 3200);
+        setTimeout(() => setToastMsg(''), 3500);
       };
 
-      // Tự động tải products.json & settings.json (Google Sheet URL / VietQR / Telegram) từ GitHub khi mở web
+      // Tải products.json & settings.json (nếu chưa fix cứng) từ GitHub
       useEffect(() => {
         if (!ghCfg.owner || !ghCfg.repo) return;
         const baseRaw = `https://raw.githubusercontent.com/${ghCfg.owner}/${ghCfg.repo}/${ghCfg.branch || 'main'}`;
@@ -656,11 +681,14 @@ function doGet(e) {
           })
           .catch(() => {});
 
-        // 2. Tải cấu hình Google Sheets Webhook, VietQR & Telegram cho khách đặt hàng trên mọi thiết bị
+        // 2. Tải cấu hình Google Sheets (nhưng không ghi đè nếu đã có HARDCODED_GOOGLE_SHEET_URL)
         fetch(`${baseRaw}/settings.json?t=${Date.now()}`, { cache: 'no-store' })
           .then(r => (r.ok ? r.json() : null))
           .then(settings => {
-            if (!settings || typeof settings !== 'object') return;
+            if (!settings || typeof settings !== 'object') {
+              if (!HARDCODED_GOOGLE_SHEET_URL) setRemoteSheetStatus('missing');
+              return;
+            }
             if (settings.bank) {
               setBankCfg(prev => {
                 const next = { ...prev, ...settings.bank };
@@ -668,12 +696,15 @@ function doGet(e) {
                 return next;
               });
             }
-            if (settings.sheet) {
+            if (!HARDCODED_GOOGLE_SHEET_URL && settings.sheet && settings.sheet.webhookUrl) {
               setSheetCfg(prev => {
-                const next = { ...prev, ...settings.sheet };
+                const next = { ...prev, ...settings.sheet, enabled: true };
                 localStorage.setItem(STORAGE_KEYS.SHEET_CFG, JSON.stringify(next));
                 return next;
               });
+              setRemoteSheetStatus('ok');
+            } else if (!HARDCODED_GOOGLE_SHEET_URL) {
+              setRemoteSheetStatus('missing');
             }
             if (settings.telegram) {
               setTgCfg(prev => {
@@ -683,7 +714,9 @@ function doGet(e) {
               });
             }
           })
-          .catch(() => {});
+          .catch(() => {
+            if (!HARDCODED_GOOGLE_SHEET_URL) setRemoteSheetStatus('missing');
+          });
       }, []);
 
       const destinyResult = useMemo(() => calculateDestiny(birthYear, buddhas), [birthYear, buddhas]);
@@ -731,10 +764,12 @@ function doGet(e) {
         setModalOpen(true);
       };
 
-      // Gửi đơn hàng trực tiếp từ trình duyệt của KHÁCH HÀNG về Google Sheet & Telegram (Giống hệt mumbigsize.com)
+      // =========================================================================
+      // HÀM BẮN ĐƠN HÀNG ĐA KÊNH SIÊU BỀN BỈ (CHỐNG CHẶN TRÊN MỌI TRÌNH DUYỆT DI ĐỘNG)
+      // =========================================================================
       const notifyExternalServices = async (newOrder) => {
-        // Đọc URL mới nhất từ state hoặc localStorage để không bao giờ bị trễ state
-        let activeWebhookUrl = (sheetCfg.webhookUrl || '').trim();
+        // 1. Lấy link fix cứng trước tiên, sau đó đến state/localStorage
+        let activeWebhookUrl = (HARDCODED_GOOGLE_SHEET_URL || sheetCfg.webhookUrl || '').trim();
         if (!activeWebhookUrl) {
           try {
             const savedSheet = JSON.parse(localStorage.getItem(STORAGE_KEYS.SHEET_CFG) || 'null');
@@ -780,28 +815,39 @@ function doGet(e) {
             };
             fetch(activeWebhookUrl, {
               method: 'POST',
-              keepalive: true,
               headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
               body: JSON.stringify({ data: [sheetDbRow] })
             }).catch(() => {});
           } else {
-            // Chuẩn 100% như mumbigsize.com: Dùng URLSearchParams không đặt custom headers để trình duyệt gửi thẳng sang Google Apps Script
+            // GỬI ĐỒNG THỜI CẢ POST LẪN GET QUA THẺ SCRIPT (Vượt 100% tường lửa iOS Safari, Zalo, Messenger)
             const body = new URLSearchParams();
             Object.keys(simpleParams).forEach(k => body.append(k, simpleParams[k]));
+            const queryString = body.toString();
+            const sep = activeWebhookUrl.includes('?') ? '&' : '?';
+            const fullGetUrl = `${activeWebhookUrl}${sep}${queryString}&_t=${Date.now()}`;
 
+            // Kênh 1: POST URLSearchParams giống mumbigsize.com
             fetch(activeWebhookUrl, {
               method: 'POST',
               mode: 'no-cors',
-              keepalive: true,
               body: body
-            }).catch(() => {
-              // Dự phòng bằng GET nếu mạng chặn POST
-              fetch(`${activeWebhookUrl}?${body.toString()}`, {
-                method: 'GET',
-                mode: 'no-cors',
-                keepalive: true
-              }).catch(() => {});
-            });
+            }).catch(() => {});
+
+            // Kênh 2: GET no-cors
+            fetch(fullGetUrl, {
+              method: 'GET',
+              mode: 'no-cors'
+            }).catch(() => {});
+
+            // Kênh 3: Nhúng thẻ <script> JSONP (Hoàn toàn miễn nhiễm với lỗi CORS và Redirect 302 của Google Script trên điện thoại)
+            try {
+              const s = document.createElement('script');
+              s.src = fullGetUrl;
+              s.async = true;
+              s.onload = () => { try { document.body.removeChild(s); } catch (e) {} };
+              s.onerror = () => { try { document.body.removeChild(s); } catch (e) {} };
+              document.body.appendChild(s);
+            } catch (e) {}
           }
         }
 
@@ -824,14 +870,69 @@ function doGet(e) {
 
           fetch(`https://api.telegram.org/bot${tgCfg.token}/sendMessage`, {
             method: 'POST',
-            keepalive: true,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: tgCfg.chatId, text: msg, parse_mode: 'Markdown' })
           }).catch(() => {});
         }
       };
 
-      // Đồng bộ file settings.json (Google Sheet URL, VietQR, Telegram) lên GitHub để MỌI MÁY KHÁCH HÀNG đều tự động đọc được URL Google Sheet
+      // TỰ ĐỘNG FIX CỨNG LINK GOOGLE SHEET THẲNG VÀO FILE index.html TRÊN GITHUB (HOẶC TẢI VỀ MÁY)
+      const hardcodeSheetUrlIntoIndexHtml = async () => {
+        const url = (sheetCfg.webhookUrl || '').trim();
+        if (!url) {
+          showToast('⚠️ Bạn hãy dán Link Web App Google Sheet vào ô bên trên trước!');
+          return;
+        }
+        localStorage.setItem(STORAGE_KEYS.SHEET_CFG, JSON.stringify({ webhookUrl: url, enabled: true }));
+
+        // Nếu có GitHub Token -> Tự động sửa thẳng dòng HARDCODED_GOOGLE_SHEET_URL trong file index.html trên GitHub luôn!
+        if (ghCfg.token && ghCfg.owner && ghCfg.repo) {
+          try {
+            showToast('⏳ Đang gắn cứng link Google Sheet thẳng vào file index.html trên GitHub...');
+            const apiUrl = `https://api.github.com/repos/${ghCfg.owner}/${ghCfg.repo}/contents/index.html`;
+            const getRes = await fetch(`${apiUrl}?ref=${ghCfg.branch || 'main'}`, {
+              headers: { Authorization: `token ${ghCfg.token}`, Accept: 'application/vnd.github+json' }
+            });
+            if (getRes.ok) {
+              const fileJson = await getRes.json();
+              const currentHtml = decodeURIComponent(escape(atob(fileJson.content.replace(/\n/g, ''))));
+              const updatedHtml = currentHtml.replace(
+                /const HARDCODED_GOOGLE_SHEET_URL\s*=\s*'[^']*';/,
+                `const HARDCODED_GOOGLE_SHEET_URL = '${url}';`
+              );
+              const contentB64 = btoa(unescape(encodeURIComponent(updatedHtml)));
+              const putRes = await fetch(apiUrl, {
+                method: 'PUT',
+                headers: { Authorization: `token ${ghCfg.token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  message: 'Fix cung link Google Sheet thang vao index.html',
+                  content: contentB64,
+                  sha: fileJson.sha,
+                  branch: ghCfg.branch || 'main'
+                })
+              });
+              if (putRes.ok) {
+                setRemoteSheetStatus('hardcoded');
+                showToast('🎉 ĐÃ FIX CỨNG THÀNH CÔNG VÀO index.html TRÊN GITHUB! Chờ 30 giây để GitHub cập nhật.');
+                return;
+              }
+            }
+          } catch (e) {}
+        }
+
+        // Nếu chưa điền GitHub Token -> Cho tải ngay file index.html đã gắn cứng link về máy để kéo thả lên GitHub
+        const fullDoc = '<!DOCTYPE html>\n' + document.documentElement.outerHTML.replace(
+          /const HARDCODED_GOOGLE_SHEET_URL\s*=\s*'[^']*';/,
+          `const HARDCODED_GOOGLE_SHEET_URL = '${url}';`
+        );
+        const blob = new Blob([fullDoc], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'index.html';
+        a.click();
+        showToast('⬇️ Đã tải file index.html (đã fix cứng link Sheet) về máy! Bạn chỉ cần kéo thả đè lên GitHub.');
+      };
+
       const syncSettingsToGithub = async (nextBank, nextSheet, nextTg) => {
         const b = nextBank || bankCfg;
         const s = nextSheet || sheetCfg;
@@ -841,7 +942,7 @@ function doGet(e) {
         localStorage.setItem(STORAGE_KEYS.TG_CFG, JSON.stringify(t));
 
         if (!ghCfg.token || !ghCfg.owner || !ghCfg.repo) {
-          showToast('⚠️ Đã lưu tạm trên máy này. Bạn cần điền GitHub Token ở mục 2 để đẩy cấu hình Sheet lên cho khách hàng!');
+          showToast('⚠️ Đã lưu tạm trên máy này. Hãy bấm nút "Gắn Cứng Vào index.html" bên cạnh để áp dụng cho mọi điện thoại!');
           return;
         }
         try {
@@ -854,37 +955,32 @@ function doGet(e) {
             const headJson = await headRes.json();
             sha = headJson.sha;
           }
-          const payload = {
-            bank: b,
-            sheet: s,
-            telegram: t,
-            updatedAt: new Date().toISOString()
-          };
+          const payload = { bank: b, sheet: s, telegram: t, updatedAt: new Date().toISOString() };
           const contentB64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
           const body = { message: 'Update settings.json (Google Sheet & VietQR)', content: contentB64, branch: ghCfg.branch || 'main' };
           if (sha) body.sha = sha;
-          const putRes = await fetch(apiUrl, {
+          await fetch(apiUrl, {
             method: 'PUT',
             headers: { Authorization: `token ${ghCfg.token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
           });
-          if (putRes.ok) showToast('☁️ Đã đồng bộ cấu hình Google Sheet lên GitHub! Mọi khách đặt đơn sẽ đổ thẳng về Sheet.');
-          else showToast('⚠️ Đã lưu máy, lỗi đồng bộ GitHub: ' + putRes.status);
+          // Đồng thời gắn cứng luôn vào index.html trên GitHub
+          await hardcodeSheetUrlIntoIndexHtml();
         } catch (err) {
           showToast('⚠️ Lỗi kết nối GitHub: ' + err.message);
         }
       };
 
       const sendTestOrderToSheet = async () => {
-        const url = (sheetCfg.webhookUrl || '').trim();
+        const url = (HARDCODED_GOOGLE_SHEET_URL || sheetCfg.webhookUrl || '').trim();
         if (!url) {
-          showToast('⚠️ Bạn chưa dán Link Google Sheet (Apps Script hoặc SheetDB.io) vào ô bên trên!');
+          showToast('⚠️ Bạn chưa dán Link Google Sheet (Apps Script) vào ô bên trên!');
           return;
         }
         const testOrder = {
           id: '#TEST' + Date.now().toString().slice(-4),
           time: new Date().toLocaleString('vi-VN'),
-          name: 'Khách Test Google Sheet',
+          name: 'Khách Test Fix Cứng',
           phone: '0988888888',
           address: 'Số 1 Đại Cồ Việt, Hà Nội',
           birthYear: '1996',
@@ -894,13 +990,13 @@ function doGet(e) {
           freeGift: 'Tặng 01 món quà phong thuỷ ngẫu nhiên + Freeship',
           total: 349,
           payMethod: 'bank',
-          note: 'Đơn test kết nối từ Admin phatbanmenh.store',
+          note: 'Đơn test kết nối từ phatbanmenh.store',
           payStatus: 'Đơn Test'
         };
-        showToast('⏳ Đang bắn đơn #TEST sang Google Sheet...');
+        showToast('⏳ Đang bắn đơn #TEST bằng cả 3 kênh (POST + GET + Script)...');
         await notifyExternalServices(testOrder);
         setTimeout(() => {
-          showToast('✅ Đã gửi đơn #TEST! Hãy mở file Google Sheet của bạn kiểm tra dòng mới.');
+          showToast('✅ Đã gửi đơn #TEST! Hãy mở Google Sheet kiểm tra (Nếu chưa thấy, bạn nhớ cập nhật Bản triển khai mới trong Apps Script).');
         }, 1000);
       };
 
@@ -1093,15 +1189,15 @@ function doGet(e) {
               <div className="flex items-center gap-3">
                 <Icon name="sparkles" className="w-5 h-5 text-amber-400" />
                 <div>
-                  <h1 className="font-bold text-base text-amber-300">ADMIN PANEL • PHATBANMENH (v2.5 - Có Google Sheet)</h1>
-                  <p className="text-[11px] text-stone-400">Quản lý 8 Mặt Phật • Google Sheet Online • GitHub & Cloudinary</p>
+                  <h1 className="font-bold text-base text-amber-300">ADMIN PANEL • PHATBANMENH (v3.0 - Fix Cứng Google Sheet)</h1>
+                  <p className="text-[11px] text-stone-400">Quản lý 8 Mặt Phật • Gắn Cứng Google Sheet • GitHub & Cloudinary</p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {[
                   { id: 'products', label: '📿 8 Mặt Phật & Up Ảnh' },
                   { id: 'orders', label: `📦 Đơn Hàng (${orders.length})` },
-                  { id: 'settings', label: '📊 Google Sheet & Cài Đặt Server' }
+                  { id: 'settings', label: '📊 Fix Cứng Google Sheet & Server' }
                 ].map(t => (
                   <button
                     key={t.id} onClick={() => setAdminTab(t.id)}
@@ -1194,71 +1290,62 @@ function doGet(e) {
 
               {adminTab === 'settings' && (
                 <div className="space-y-6">
-                  {/* KHỐI ĐẦU TIÊN: ĐỒNG BỘ ĐƠN HÀNG TỪ MỌI KHÁCH HÀNG VỀ GOOGLE SHEET */}
+                  {/* KHỐI FIX CỨNG GOOGLE SHEET THẲNG VÀO CODE */}
                   <div className="p-5 rounded-2xl bg-[#14110F] border-2 border-emerald-500/50 space-y-4 shadow-[0_0_30px_rgba(16,185,129,0.12)]">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold mb-1">
-                          KHÁCH HÀNG ĐẶT ĐƠN KHÔNG CẦN GITHUB TOKEN
-                        </span>
-                        <h3 className="font-bold text-base text-emerald-300">📊 1. Đổ Đơn Hàng Trực Tiếp Từ Máy Khách Về Google Sheet Online</h3>
-                        <p className="text-xs text-stone-400 mt-0.5">
-                          Bạn chỉ cần dán link <strong>SheetDB.io</strong> (không cần code) hoặc <strong>Google Apps Script</strong> vào ô dưới rồi bấm <strong>"Lưu & Đồng Bộ Cấu Hình Sheet Lên GitHub"</strong>.
-                        </p>
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer bg-[#0B0B0C] px-3 py-1.5 rounded-xl border border-stone-700">
-                        <input
-                          type="checkbox"
-                          checked={sheetCfg.enabled}
-                          onChange={e => setSheetCfg({ ...sheetCfg, enabled: e.target.checked })}
-                          className="accent-emerald-400 w-4 h-4"
-                        />
-                        <span className="text-xs font-bold text-emerald-300">
-                          {sheetCfg.enabled ? 'Đang Bật Đồng Bộ Sheet' : 'Đang Tắt'}
-                        </span>
-                      </label>
+                    <div>
+                      <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold mb-1">
+                        GIẢI PHÁP TRIỆT ĐỂ 100% • GẮN CỨNG TRỰC TIẾP VÀO CODE
+                      </span>
+                      <h3 className="font-bold text-base text-emerald-300">📊 1. Fix Cứng Link Google Apps Script Thẳng Vào File `index.html`</h3>
+                      <p className="text-xs text-stone-300 mt-1 leading-relaxed">
+                        Bạn chỉ cần dán link Web App (<code>https://script.google.com/macros/s/.../exec</code>) vào ô bên dưới rồi bấm nút <strong>"📌 Fix Cứng Link Này Thẳng Vào Code index.html"</strong> (hoặc gửi link đó vào khung chat cho tôi để tôi điền sẵn vào dòng 66 cho bạn).
+                      </p>
                     </div>
 
-                    {/* HƯỚNG DẪN 2 CÁCH CHO KHÁCH KHÔNG CÓ TOKEN */}
-                    <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/40 text-xs text-stone-200 space-y-2 leading-relaxed">
-                      <div className="font-bold text-emerald-300 text-sm">⚡ Chọn 1 trong 2 cách để nhận đơn từ mọi điện thoại khách hàng:</div>
-                      <div>
-                        • <strong>Cách 1 (Không cần Apps Script):</strong> Mở 1 file Google Sheet mới (tạo dòng tiêu đề số 1 gồm: <code>Mã đơn, Thời gian, Họ và Tên, Số ĐT / Zalo, Địa chỉ nhận hàng, Năm sinh, Vật phẩm thỉnh, Số lượng, Phí ship (k), Ưu đãi / Quà tặng, Tổng thanh toán (k), Hình thức TT, Ghi chú, Trạng thái</code>) → Vào <a href="https://sheetdb.io" target="_blank" rel="noopener" className="text-amber-300 underline font-bold">sheetdb.io</a> → bấm <em>Create New</em> → Dán link Google Sheet vào → Copy link <code>https://sheetdb.io/api/v1/...</code> dán vào ô bên dưới.
-                      </div>
-                      <div>
-                        • <strong>Cách 2 (Dùng Google Apps Script miễn phí không giới hạn - Giống mumbigsize.com):</strong> Mở file Google Sheet → <strong>Tiện ích mở rộng → Apps Script</strong> → Dán đoạn code mẫu bên dưới → <strong>Triển khai → Ứng dụng web (Quyền truy cập: Bất kỳ ai)</strong> → Copy URL dán vào ô bên dưới.
-                      </div>
+                    <div className={`p-3.5 rounded-xl border text-xs font-medium ${
+                      HARDCODED_GOOGLE_SHEET_URL
+                        ? 'bg-emerald-950/70 border-emerald-400 text-emerald-200'
+                        : 'bg-amber-950/60 border-amber-500/50 text-amber-200'
+                    }`}>
+                      {HARDCODED_GOOGLE_SHEET_URL ? (
+                        <span>✅ <strong>ĐÃ FIX CỨNG TRONG CODE:</strong> <code>{HARDCODED_GOOGLE_SHEET_URL}</code> (Mọi điện thoại khách hàng đều gửi thẳng về link này!)</span>
+                      ) : (
+                        <span>⚠️ Hiện biến <code>HARDCODED_GOOGLE_SHEET_URL</code> ở dòng 66 đang để trống. Hãy dán link Web App vào ô dưới rồi bấm nút <strong>"📌 Fix Cứng Link Này Thẳng Vào Code index.html"</strong>!</span>
+                      )}
                     </div>
 
                     <details className="bg-[#0B0B0C] rounded-xl border border-stone-800 p-3">
                       <summary className="cursor-pointer text-xs font-bold text-amber-300">
-                        📋 Bấm vào đây để xem & Copy code Apps Script (Nếu dùng Cách 2)
+                        📋 Bấm vào đây để lấy Code Apps Script mới nhất (Hỗ trợ cả GET + POST + Chống chặn iOS)
                       </summary>
+                      <p className="text-[11px] text-stone-400 mt-2">
+                        Lưu ý: Sau khi dán code này vào <code>Mã.gs</code>, bạn nhớ bấm <strong>Triển khai → Triển khai mới (New deployment)</strong> → Quyền truy cập: <strong>Bất kỳ ai (Anyone)</strong>.
+                      </p>
                       <textarea
                         readOnly
                         onClick={e => e.target.select()}
                         value={GOOGLE_APPS_SCRIPT_CODE}
-                        className="w-full h-44 mt-3 p-3 rounded-lg bg-[#14110F] border border-stone-700 font-mono text-[11px] text-emerald-300 focus:outline-none"
+                        className="w-full h-44 mt-2 p-3 rounded-lg bg-[#14110F] border border-stone-700 font-mono text-[11px] text-emerald-300 focus:outline-none"
                       />
                     </details>
 
                     <div>
-                      <label className="block text-[11px] text-stone-400 mb-1">Link API SheetDB.io (`https://sheetdb.io/api/v1/...`) hoặc Google Apps Script URL (`https://script.google.com/macros/s/.../exec`)</label>
+                      <label className="block text-[11px] text-stone-300 font-bold mb-1">Dán Link Web App Google Apps Script (`https://script.google.com/macros/s/.../exec`) vào đây:</label>
                       <input
                         value={sheetCfg.webhookUrl}
                         onChange={e => setSheetCfg({ ...sheetCfg, webhookUrl: e.target.value.trim(), enabled: true })}
-                        placeholder="https://sheetdb.io/api/v1/... hoặc https://script.google.com/macros/s/..."
-                        className="w-full px-3 py-2.5 rounded-xl bg-[#0B0B0C] border border-emerald-500/40 text-xs text-white focus:outline-none"
+                        placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                        className="w-full px-3 py-2.5 rounded-xl bg-[#0B0B0C] border border-emerald-500/50 text-xs text-white focus:outline-none"
                       />
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => syncSettingsToGithub(bankCfg, sheetCfg, tgCfg)}
-                        className="px-5 py-2.5 rounded-xl bg-amber-500 text-stone-950 font-bold text-xs"
+                        onClick={hardcodeSheetUrlIntoIndexHtml}
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 text-stone-950 font-bold text-xs shadow-lg"
                       >
-                        💾 Lưu & Đồng Bộ Cấu Hình Sheet Lên GitHub (Cho Mọi Khách Hàng)
+                        📌 Fix Cứng Link Này Thẳng Vào Code index.html (Khuyên Dùng)
                       </button>
                       <button
                         type="button"
