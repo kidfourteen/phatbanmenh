@@ -1,0 +1,1891 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  Sparkles, Shield, Compass, Calendar, Search, ShoppingBag, 
+  CheckCircle2, AlertTriangle, Star, Phone, User, 
+  Gem, X, Flame, Eye, Zap, Lock, Upload, RefreshCw, 
+  Trash2, Edit3, Gift, QrCode, Truck, Check, Copy, ExternalLink, Settings, Package, FileText
+} from 'lucide-react';
+
+// ==========================================
+// 1. CẤU HÌNH HỆ THỐNG ADMIN & SERVER FREE GITHUB (PROJECT: phatbanmenh)
+// ==========================================
+const STORAGE_KEYS = {
+  PRODUCTS: 'pbm_products_v2',
+  ORDERS: 'pbm_orders_v2',
+  GH_CFG: 'pbm_gh_cfg_v2',
+  CLD_CFG: 'pbm_cld_cfg_v2',
+  TG_CFG: 'pbm_tg_cfg_v2',
+  SHEET_CFG: 'pbm_sheet_cfg_v2',
+  BANK_CFG: 'pbm_bank_cfg_v2'
+};
+
+const ADMIN_ACCOUNTS = [
+  { user: 'phatbanmenh', pass: '123123123' },
+  { user: 'admin', pass: '123123123' }
+];
+
+const DEFAULT_MATERIAL = 'Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo';
+const DEFAULT_PRICE = 349; // 349.000đ
+const DEFAULT_OLD_PRICE = 999; // 999.000đ
+const DEFAULT_SHIP_FEE = 19; // 19.000đ
+
+const formatVND = (k) => (Math.round(Number(k) || 0) * 1000).toLocaleString('vi-VN') + ' ₫';
+
+// ==========================================
+// 2. DỮ LIỆU GỐC 8 VỊ PHẬT BẢN MỆNH & 12 CON GIÁP
+// ==========================================
+
+const INITIAL_BUDDHAS = {
+  THIEN_THU: {
+    id: 'THIEN_THU',
+    name: 'Thiên Thủ Thiên Nhãn',
+    fullName: 'Thiên Thủ Thiên Nhãn Bồ Tát',
+    zodiacs: ['Tý'],
+    zodiacBadge: 'Tuổi Tý',
+    tags: ['Trí tuệ sáng suốt', 'Tránh xa tiểu nhân', 'Hộ mệnh bình an'],
+    shortDesc: 'Pháp tướng nghìn mắt nghìn tay đúc từ Đồng Thau Nguyên Khối soi thấu trần gian, hóa giải tai ương.',
+    price: DEFAULT_PRICE,
+    oldPrice: DEFAULT_OLD_PRICE,
+    material: DEFAULT_MATERIAL,
+    images: []
+  },
+  HU_KHONG_TANG: {
+    id: 'HU_KHONG_TANG',
+    name: 'Hư Không Tạng Bồ Tát',
+    fullName: 'Hư Không Tạng Bồ Tát',
+    zodiacs: ['Sửu', 'Dần'],
+    zodiacBadge: 'Tuổi Sửu • Dần',
+    tags: ['Chiêu tài tụ lộc', 'Giữ vững kho tiền', 'Định tâm sáng trí'],
+    shortDesc: 'Chủ tôn kho tàng phước đức bằng Đồng Thau Nguyên Khối, giúp tụ tài và điều hòa tâm tính.',
+    price: DEFAULT_PRICE,
+    oldPrice: DEFAULT_OLD_PRICE,
+    material: DEFAULT_MATERIAL,
+    images: []
+  },
+  VAN_THU: {
+    id: 'VAN_THU',
+    name: 'Văn Thù Sư Lợi Bồ Tát',
+    fullName: 'Văn Thù Sư Lợi Bồ Tát',
+    zodiacs: ['Mão'],
+    zodiacBadge: 'Tuổi Mão',
+    tags: ['Khai mở trí tuệ', 'Quyết đoán bứt phá', 'Công danh thăng tiến'],
+    shortDesc: 'Thanh gươm trí tuệ chặt đứt phiền não, đại cát trong học vấn và sự nghiệp.',
+    price: DEFAULT_PRICE,
+    oldPrice: DEFAULT_OLD_PRICE,
+    material: DEFAULT_MATERIAL,
+    images: []
+  },
+  PHO_HIEN: {
+    id: 'PHO_HIEN',
+    name: 'Phổ Hiền Bồ Tát',
+    fullName: 'Phổ Hiền Bồ Tát',
+    zodiacs: ['Thìn', 'Tỵ'],
+    zodiacBadge: 'Tuổi Thìn • Tỵ',
+    tags: ['Thu phục nhân tâm', 'Quý nhân trợ lực', 'Vững vàng quyền uy'],
+    shortDesc: 'Ngự voi trắng 6 ngà uy nghiêm, biến thử thách thành đại nghiệp.',
+    price: DEFAULT_PRICE,
+    oldPrice: DEFAULT_OLD_PRICE,
+    material: DEFAULT_MATERIAL,
+    images: []
+  },
+  DAI_THE_CHI: {
+    id: 'DAI_THE_CHI',
+    name: 'Đại Thế Chí Bồ Tát',
+    fullName: 'Đại Thế Chí Bồ Tát',
+    zodiacs: ['Ngọ'],
+    zodiacBadge: 'Tuổi Ngọ',
+    tags: ['Ánh sáng dẫn lối', 'Thượng lộ bình an', 'Tích lũy tài sản'],
+    shortDesc: 'Ánh sáng trí tuệ tối thượng giúp kiên định mục tiêu và bình an vạn dặm.',
+    price: DEFAULT_PRICE,
+    oldPrice: DEFAULT_OLD_PRICE,
+    material: DEFAULT_MATERIAL,
+    images: []
+  },
+  NHU_LAI_DAI_NHAT: {
+    id: 'NHU_LAI_DAI_NHAT',
+    name: 'Như Lai Đại Nhật',
+    fullName: 'Phật Như Lai Đại Nhật',
+    zodiacs: ['Mùi', 'Thân'],
+    zodiacBadge: 'Tuổi Mùi • Thân',
+    tags: ['Hóa giải Thái Tuế', 'Dương khí dồi dào', 'Phúc huệ song tu'],
+    shortDesc: 'Ánh mặt trời Phật pháp xua tan bóng tối, bảo hộ năm tuổi bình an.',
+    price: DEFAULT_PRICE,
+    oldPrice: DEFAULT_OLD_PRICE,
+    material: DEFAULT_MATERIAL,
+    images: []
+  },
+  BAT_DONG_MINH_VUONG: {
+    id: 'BAT_DONG_MINH_VUONG',
+    name: 'Bất Động Minh Vương',
+    fullName: 'Bất Động Minh Vương',
+    zodiacs: ['Dậu'],
+    zodiacBadge: 'Tuổi Dậu',
+    tags: ['Trấn trạch trừ tà', 'Hóa giải Tam Tai', 'Tâm vững trước bão'],
+    shortDesc: 'Gươm lửa thiêu rụi chướng ngại, trấn áp tiểu nhân và tà khí.',
+    price: DEFAULT_PRICE,
+    oldPrice: DEFAULT_OLD_PRICE,
+    material: DEFAULT_MATERIAL,
+    images: []
+  },
+  PHAT_A_DI_DA: {
+    id: 'PHAT_A_DI_DA',
+    name: 'Phật A Di Đà',
+    fullName: 'Đức Phật A Di Đà',
+    zodiacs: ['Tuất', 'Hợi'],
+    zodiacBadge: 'Tuổi Tuất • Hợi',
+    tags: ['Phúc thọ viên mãn', 'An lạc tâm hồn', 'Giữ trọn tài lộc'],
+    shortDesc: 'Vô Lượng Quang - Vô Lượng Thọ, hóa giải xung sát, gia đạo bình an.',
+    price: DEFAULT_PRICE,
+    oldPrice: DEFAULT_OLD_PRICE,
+    material: DEFAULT_MATERIAL,
+    images: []
+  }
+};
+
+// Dữ liệu cô đọng 12 Con Giáp năm Đinh Mùi 2027
+const ZODIAC_DATA_2027 = [
+  { branch: 'Tý', animal: 'Chuột', emoji: '🐭', sampleYear: '1996', buddhaId: 'THIEN_THU', status2027: 'Hại Thái Tuế', statusType: 'warning', tip2027: 'Đề phòng tiểu nhân & hao tài, cần đeo Phật để soi sáng tâm trí.' },
+  { branch: 'Sửu', animal: 'Trâu', emoji: '🐮', sampleYear: '1997', buddhaId: 'HU_KHONG_TANG', status2027: 'Xung Thái Tuế • Tam Tai', statusType: 'danger', tip2027: 'Năm biến động mạnh, lấy tĩnh chế động & trấn giữ kho tiền.' },
+  { branch: 'Dần', animal: 'Hổ', emoji: '🐯', sampleYear: '1998', buddhaId: 'HU_KHONG_TANG', status2027: 'Bình Hòa • Cát Lợi', statusType: 'good', tip2027: 'Mộc sinh Hỏa vượng khí, kiểm soát nóng nảy để giữ lộc lớn.' },
+  { branch: 'Mão', animal: 'Mèo', emoji: '🐰', sampleYear: '1999', buddhaId: 'VAN_THU', status2027: 'Tam Hợp Đại Cát', statusType: 'excellent', tip2027: 'Quý nhân đưa lối, đeo Văn Thù Bồ Tát để quyết đoán chớp thời cơ.' },
+  { branch: 'Thìn', animal: 'Rồng', emoji: '🐲', sampleYear: '2000', buddhaId: 'PHO_HIEN', status2027: 'Bình Ổn • Tích Lũy', statusType: 'good', tip2027: 'Củng cố địa vị, mở rộng hợp tác cùng quý nhân.' },
+  { branch: 'Tỵ', animal: 'Rắn', emoji: '🐍', sampleYear: '2001', buddhaId: 'PHO_HIEN', status2027: 'Năm Cuối Tam Tai', statusType: 'warning', tip2027: 'Áp lực giảm dần, cần Phổ Hiền Bồ Tát hóa giải dư âm Tam Tai.' },
+  { branch: 'Ngọ', animal: 'Ngựa', emoji: '🐴', sampleYear: '1990', buddhaId: 'DAI_THE_CHI', status2027: 'Lục Hợp Thái Tuế', statusType: 'excellent', tip2027: 'Tài lộc & tình duyên rực rỡ nhất năm 2027, tụ tài đắc lộc.' },
+  { branch: 'Mùi', animal: 'Dê', emoji: '🐐', sampleYear: '1991', buddhaId: 'NHU_LAI_DAI_NHAT', status2027: 'Trực Thái Tuế (Năm Tuổi)', statusType: 'danger', tip2027: 'Năm bản mệnh dễ bất an, cần ánh sáng Như Lai Đại Nhật hộ thân.' },
+  { branch: 'Thân', animal: 'Khỉ', emoji: '🐵', sampleYear: '1992', buddhaId: 'NHU_LAI_DAI_NHAT', status2027: 'Hồng Loan Chiếu Mệnh', statusType: 'good', tip2027: 'Vượng nhân duyên & hợp đồng lớn, giữ tâm tĩnh tránh chủ quan.' },
+  { branch: 'Dậu', animal: 'Gà', emoji: '🐔', sampleYear: '1993', buddhaId: 'BAT_DONG_MINH_VUONG', status2027: 'Năm Cuối Tam Tai', statusType: 'warning', tip2027: 'Cẩn trọng lời nói, dùng gươm lửa Bất Động Minh Vương cắt vận xui.' },
+  { branch: 'Tuất', animal: 'Chó', emoji: '🐶', sampleYear: '1994', buddhaId: 'PHAT_A_DI_DA', status2027: 'Phá Thái Tuế', statusType: 'warning', tip2027: 'Tránh hùn hạp rủi ro, đeo Phật A Di Đà giữ trọn bình an.' },
+  { branch: 'Hợi', animal: 'Lợn', emoji: '🐷', sampleYear: '1995', buddhaId: 'PHAT_A_DI_DA', status2027: 'Tam Hợp Quý Nhân', statusType: 'excellent', tip2027: 'Tài vận hanh thông, phước báu tròn đầy và gia đạo ấm êm.' }
+];
+
+const STEMS = ['Canh', 'Tân', 'Nhâm', 'Quý', 'Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ'];
+const BRANCHES = ['Thân', 'Dậu', 'Tuất', 'Hợi', 'Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi'];
+
+const NAP_AM_MAP = {
+  'Giáp Tý': { element: 'Kim', detail: 'Hải Trung Kim (Vàng trong biển)', color: 'text-amber-200' },
+  'Ất Sửu': { element: 'Kim', detail: 'Hải Trung Kim (Vàng trong biển)', color: 'text-amber-200' },
+  'Bính Dần': { element: 'Hỏa', detail: 'Lư Trung Hỏa (Lửa trong lò)', color: 'text-red-400' },
+  'Đinh Mão': { element: 'Hỏa', detail: 'Lư Trung Hỏa (Lửa trong lò)', color: 'text-red-400' },
+  'Mậu Thìn': { element: 'Mộc', detail: 'Đại Lâm Mộc (Gỗ rừng già)', color: 'text-emerald-400' },
+  'Kỷ Tỵ': { element: 'Mộc', detail: 'Đại Lâm Mộc (Gỗ rừng già)', color: 'text-emerald-400' },
+  'Canh Ngọ': { element: 'Thổ', detail: 'Lộ Bàng Thổ (Đất ven đường)', color: 'text-yellow-500' },
+  'Tân Mùi': { element: 'Thổ', detail: 'Lộ Bàng Thổ (Đất ven đường)', color: 'text-yellow-500' },
+  'Nhâm Thân': { element: 'Kim', detail: 'Kiếm Phong Kim (Vàng mũi kiếm)', color: 'text-amber-200' },
+  'Quý Dậu': { element: 'Kim', detail: 'Kiếm Phong Kim (Vàng mũi kiếm)', color: 'text-amber-200' },
+  'Giáp Tuất': { element: 'Hỏa', detail: 'Sơn Đầu Hỏa (Lửa trên núi)', color: 'text-red-400' },
+  'Ất Hợi': { element: 'Hỏa', detail: 'Sơn Đầu Hỏa (Lửa trên núi)', color: 'text-red-400' },
+  'Bính Tý': { element: 'Thủy', detail: 'Giản Hạ Thủy (Nước khe suối)', color: 'text-sky-400' },
+  'Đinh Sửu': { element: 'Thủy', detail: 'Giản Hạ Thủy (Nước khe suối)', color: 'text-sky-400' },
+  'Mậu Dần': { element: 'Thổ', detail: 'Thành Đầu Thổ (Đất thành trì)', color: 'text-yellow-500' },
+  'Kỷ Mão': { element: 'Thổ', detail: 'Thành Đầu Thổ (Đất thành trì)', color: 'text-yellow-500' },
+  'Canh Thìn': { element: 'Kim', detail: 'Bạch Lạp Kim (Vàng sáp ong)', color: 'text-amber-200' },
+  'Tân Tỵ': { element: 'Kim', detail: 'Bạch Lạp Kim (Vàng sáp ong)', color: 'text-amber-200' },
+  'Nhâm Ngọ': { element: 'Mộc', detail: 'Dương Liễu Mộc (Gỗ cây liễu)', color: 'text-emerald-400' },
+  'Quý Mùi': { element: 'Mộc', detail: 'Dương Liễu Mộc (Gỗ cây liễu)', color: 'text-emerald-400' },
+  'Giáp Thân': { element: 'Thủy', detail: 'Tuyền Trung Thủy (Nước trong suối)', color: 'text-sky-400' },
+  'Ất Dậu': { element: 'Thủy', detail: 'Tuyền Trung Thủy (Nước trong suối)', color: 'text-sky-400' },
+  'Bính Tuất': { element: 'Thổ', detail: 'Ốc Thượng Thổ (Đất nóc nhà)', color: 'text-yellow-500' },
+  'Đinh Hợi': { element: 'Thổ', detail: 'Ốc Thượng Thổ (Đất nóc nhà)', color: 'text-yellow-500' },
+  'Mậu Tý': { element: 'Hỏa', detail: 'Tích Lịch Hỏa (Lửa sấm sét)', color: 'text-red-400' },
+  'Kỷ Sửu': { element: 'Hỏa', detail: 'Tích Lịch Hỏa (Lửa sấm sét)', color: 'text-red-400' },
+  'Canh Dần': { element: 'Mộc', detail: 'Tùng Bách Mộc (Gỗ tùng bách)', color: 'text-emerald-400' },
+  'Tân Mão': { element: 'Mộc', detail: 'Tùng Bách Mộc (Gỗ tùng bách)', color: 'text-emerald-400' },
+  'Nhâm Thìn': { element: 'Thủy', detail: 'Trường Lưu Thủy (Nước chảy mạnh)', color: 'text-sky-400' },
+  'Quý Tỵ': { element: 'Thủy', detail: 'Trường Lưu Thủy (Nước chảy mạnh)', color: 'text-sky-400' },
+  'Giáp Ngọ': { element: 'Kim', detail: 'Sa Trung Kim (Vàng trong cát)', color: 'text-amber-200' },
+  'Ất Mùi': { element: 'Kim', detail: 'Sa Trung Kim (Vàng trong cát)', color: 'text-amber-200' },
+  'Bính Thân': { element: 'Hỏa', detail: 'Sơn Hạ Hỏa (Lửa dưới núi)', color: 'text-red-400' },
+  'Đinh Dậu': { element: 'Hỏa', detail: 'Sơn Hạ Hỏa (Lửa dưới núi)', color: 'text-red-400' },
+  'Mậu Tuất': { element: 'Mộc', detail: 'Bình Địa Mộc (Gỗ đồng bằng)', color: 'text-emerald-400' },
+  'Kỷ Hợi': { element: 'Mộc', detail: 'Bình Địa Mộc (Gỗ đồng bằng)', color: 'text-emerald-400' },
+  'Canh Tý': { element: 'Thổ', detail: 'Bích Thượng Thổ (Đất tò vò)', color: 'text-yellow-500' },
+  'Tân Sửu': { element: 'Thổ', detail: 'Bích Thượng Thổ (Đất tò vò)', color: 'text-yellow-500' },
+  'Nhâm Dần': { element: 'Kim', detail: 'Kim Bạch Kim (Vàng pha bạc)', color: 'text-amber-200' },
+  'Quý Mão': { element: 'Kim', detail: 'Kim Bạch Kim (Vàng pha bạc)', color: 'text-amber-200' },
+  'Giáp Thìn': { element: 'Hỏa', detail: 'Phúc Đăng Hỏa (Lửa đèn chụp)', color: 'text-red-400' },
+  'Ất Tỵ': { element: 'Hỏa', detail: 'Phúc Đăng Hỏa (Lửa đèn chụp)', color: 'text-red-400' },
+  'Bính Ngọ': { element: 'Thủy', detail: 'Thiên Hà Thủy (Nước trên trời)', color: 'text-sky-400' },
+  'Đinh Mùi': { element: 'Thủy', detail: 'Thiên Hà Thủy (Nước trên trời)', color: 'text-sky-400' },
+  'Mậu Thân': { element: 'Thổ', detail: 'Đại Trạch Thổ (Đất nền nhà)', color: 'text-yellow-500' },
+  'Kỷ Dậu': { element: 'Thổ', detail: 'Đại Trạch Thổ (Đất nền nhà)', color: 'text-yellow-500' },
+  'Canh Tuất': { element: 'Kim', detail: 'Thoa Xuyến Kim (Vàng trang sức)', color: 'text-amber-200' },
+  'Tân Hợi': { element: 'Kim', detail: 'Thoa Xuyến Kim (Vàng trang sức)', color: 'text-amber-200' },
+  'Nhâm Tý': { element: 'Mộc', detail: 'Tang Đố Mộc (Gỗ cây dâu)', color: 'text-emerald-400' },
+  'Quý Sửu': { element: 'Mộc', detail: 'Tang Đố Mộc (Gỗ cây dâu)', color: 'text-emerald-400' },
+  'Giáp Dần': { element: 'Thủy', detail: 'Đại Khê Thủy (Nước khe lớn)', color: 'text-sky-400' },
+  'Ất Mão': { element: 'Thủy', detail: 'Đại Khê Thủy (Nước khe lớn)', color: 'text-sky-400' },
+  'Bính Thìn': { element: 'Thổ', detail: 'Sa Trung Thổ (Đất pha cát)', color: 'text-yellow-500' },
+  'Đinh Tỵ': { element: 'Thổ', detail: 'Sa Trung Thổ (Đất pha cát)', color: 'text-yellow-500' },
+  'Mậu Ngọ': { element: 'Hỏa', detail: 'Thiên Thượng Hỏa (Lửa trên trời)', color: 'text-red-400' },
+  'Kỷ Mùi': { element: 'Hỏa', detail: 'Thiên Thượng Hỏa (Lửa trên trời)', color: 'text-red-400' },
+  'Canh Thân': { element: 'Mộc', detail: 'Thạch Lựu Mộc (Gỗ cây lựu)', color: 'text-emerald-400' },
+  'Tân Dậu': { element: 'Mộc', detail: 'Thạch Lựu Mộc (Gỗ cây lựu)', color: 'text-emerald-400' },
+  'Nhâm Tuất': { element: 'Thủy', detail: 'Đại Hải Thủy (Nước biển lớn)', color: 'text-sky-400' },
+  'Quý Hợi': { element: 'Thủy', detail: 'Đại Hải Thủy (Nước biển lớn)', color: 'text-sky-400' }
+};
+
+function calculateDestiny(yearInput, buddhasMap) {
+  const year = parseInt(yearInput, 10);
+  if (isNaN(year) || year < 1920 || year > 2040) return null;
+
+  const stem = STEMS[year % 10];
+  const branch = BRANCHES[year % 12];
+  const canChi = `${stem} ${branch}`;
+  const napAm = NAP_AM_MAP[canChi] || { element: 'Kim', detail: 'Bản mệnh Cát Tường', color: 'text-amber-300' };
+  const zodiacInfo = ZODIAC_DATA_2027.find(z => z.branch === branch);
+  const buddha = (buddhasMap || INITIAL_BUDDHAS)[zodiacInfo.buddhaId];
+
+  return {
+    year,
+    stem,
+    branch,
+    canChi,
+    napAm,
+    zodiacInfo,
+    buddha
+  };
+}
+
+// ==========================================
+// 3. COMPONENT MINH HỌA SVG MẶT DÂY CHUYỀN (CHẾ TÁC RIÊNG THEO ẢNH THẬT)
+// ==========================================
+const PendantArtwork = ({ buddhaId, size = 'md' }) => {
+  const dimClass = size === 'lg' ? 'w-64 h-80' : size === 'sm' ? 'w-20 h-24' : 'w-48 h-60';
+
+  const emeraldGems = useMemo(() => {
+    const gems = [];
+    const total = 28;
+    for (let i = 0; i < total; i++) {
+      const angle = (i / total) * Math.PI * 2;
+      const x = 100 + Math.cos(angle) * 74;
+      const y = 132 + Math.sin(angle) * 96;
+      gems.push({
+        x: x.toFixed(1),
+        y: y.toFixed(1),
+        isCornerDiamond: i % 7 === 0
+      });
+    }
+    return gems;
+  }, []);
+
+  const sanskritSeed = {
+    THIEN_THU: 'ॐ',
+    HU_KHONG_TANG: 'त्रां',
+    VAN_THU: 'धीः',
+    PHO_HIEN: 'अं',
+    DAI_THE_CHI: 'सः',
+    NHU_LAI_DAI_NHAT: 'वं',
+    BAT_DONG_MINH_VUONG: 'हां',
+    PHAT_A_DI_DA: 'ह्रीः'
+  }[buddhaId] || 'ॐ';
+
+  return (
+    <div className={`relative ${dimClass} mx-auto flex items-center justify-center select-none`}>
+      <svg viewBox="0 0 200 260" className="w-full h-full drop-shadow-[0_12px_28px_rgba(212,175,55,0.28)]">
+        <defs>
+          <linearGradient id="brassBody" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#FDE68A" />
+            <stop offset="45%" stopColor="#D97706" />
+            <stop offset="100%" stopColor="#78350F" />
+          </linearGradient>
+          <radialGradient id="emeraldGem" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#A7F3D0" />
+            <stop offset="50%" stopColor="#10B981" />
+            <stop offset="100%" stopColor="#064E3B" />
+          </radialGradient>
+          <radialGradient id="diamondGem" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="60%" stopColor="#E2E8F0" />
+            <stop offset="100%" stopColor="#94A3B8" />
+          </radialGradient>
+        </defs>
+
+        {/* Khoen đeo dây chuyền */}
+        <ellipse cx="100" cy="18" rx="12" ry="14" fill="none" stroke="url(#brassBody)" strokeWidth="5" />
+        <rect x="92" y="26" width="16" height="12" rx="4" fill="url(#brassBody)" stroke="#451A03" strokeWidth="1" />
+
+        {/* Thân mặt dây chuyền Đồng Thau Nguyên Khối */}
+        <ellipse cx="100" cy="132" rx="82" ry="104" fill="url(#brassBody)" stroke="#FBBF24" strokeWidth="2" />
+        <ellipse cx="100" cy="132" rx="64" ry="84" fill="#1C140D" stroke="#D97706" strokeWidth="1.5" />
+
+        {/* Hào quang & Đài sen chạm khắc */}
+        <circle cx="100" cy="108" r="40" fill="none" stroke="#F59E0B" strokeWidth="1" strokeDasharray="3 3" opacity="0.7" />
+        <ellipse cx="100" cy="176" rx="38" ry="11" fill="url(#brassBody)" opacity="0.9" />
+        <ellipse cx="100" cy="182" rx="46" ry="9" fill="#B45309" opacity="0.8" />
+
+        {/* Hình tượng Đức Phật & Chủng Tự Phạn */}
+        <circle cx="100" cy="94" r="14" fill="url(#brassBody)" />
+        <path d="M72 168 C72 130, 82 114, 100 114 C118 114, 128 130, 128 168 Z" fill="url(#brassBody)" />
+        <text
+          x="100"
+          y="150"
+          textAnchor="middle"
+          fill="#291505"
+          fontSize="22"
+          fontWeight="bold"
+        >
+          {sanskritSeed}
+        </text>
+
+        {/* 6. VIỀN ĐÁ NGỌC LỤC BẢO & KIM CƯƠNG NHÂN TẠO BAO QUANH */}
+        {emeraldGems.map((gem, index) => (
+          <circle
+            key={index}
+            cx={gem.x}
+            cy={gem.y}
+            r={gem.isCornerDiamond ? "3.4" : "3.6"}
+            fill={gem.isCornerDiamond ? "url(#diamondGem)" : "url(#emeraldGem)"}
+            stroke="#2E1F00"
+            strokeWidth="0.6"
+          />
+        ))}
+      </svg>
+    </div>
+  );
+};
+
+// Component hiển thị Ảnh thật (nếu Admin đã upload) hoặc SVG chế tác
+const ProductVisual = ({ buddha, size = 'md' }) => {
+  const [imgIdx, setImgIdx] = useState(0);
+  const [showSvg, setShowSvg] = useState(false);
+  const imgs = Array.isArray(buddha?.images) ? buddha.images.filter(Boolean) : [];
+
+  if (imgs.length > 0 && !showSvg) {
+    const dim = size === 'lg' ? 'w-64 h-80' : size === 'sm' ? 'w-20 h-24' : 'w-48 h-60';
+    return (
+      <div className={`relative ${dim} mx-auto rounded-2xl overflow-hidden border border-amber-500/30 bg-[#0B0B0C] group`}>
+        <img
+          src={imgs[imgIdx % imgs.length]}
+          alt={buddha.fullName}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        {imgs.length > 1 && size !== 'sm' && (
+          <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1.5 z-10">
+            {imgs.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setImgIdx(i); }}
+                className={`w-2 h-2 rounded-full transition-all ${i === (imgIdx % imgs.length) ? 'bg-amber-400 w-4' : 'bg-white/50'}`}
+              />
+            ))}
+          </div>
+        )}
+        {size !== 'sm' && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowSvg(true); }}
+            className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/70 text-[10px] text-amber-300 border border-amber-500/30"
+          >
+            3D
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <PendantArtwork buddhaId={buddha?.id || 'THIEN_THU'} size={size} />
+      {imgs.length > 0 && size !== 'sm' && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setShowSvg(false); }}
+          className="absolute top-2 right-2 px-2 py-0.5 rounded bg-emerald-950/90 text-[10px] text-emerald-300 border border-emerald-500/40"
+        >
+          Ảnh thật ({imgs.length})
+        </button>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
+// 4. COMPONENT CHÍNH: MINIMALIST ZEN LUXURY APP + ADMIN GITHUB SERVER
+// ==========================================
+
+export default function App() {
+  // State danh sách 8 Mặt Phật (đồng bộ localStorage + GitHub products.json)
+  const [buddhas, setBuddhas] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || 'null');
+      if (saved && typeof saved === 'object') {
+        const merged = { ...INITIAL_BUDDHAS };
+        Object.keys(merged).forEach(k => {
+          if (saved[k]) {
+            merged[k] = {
+              ...merged[k],
+              ...saved[k],
+              price: Number(saved[k].price) || DEFAULT_PRICE,
+              oldPrice: Number(saved[k].oldPrice) || DEFAULT_OLD_PRICE,
+              material: saved[k].material || DEFAULT_MATERIAL
+            };
+          }
+        });
+        return merged;
+      }
+    } catch (e) {}
+    return INITIAL_BUDDHAS;
+  });
+
+  // State Đơn hàng & Cấu hình Admin
+  const [orders, setOrders] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.ORDERS) || '[]'); } catch (e) { return []; }
+  });
+  const [ghCfg, setGhCfg] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.GH_CFG) || 'null') || {
+        owner: 'kidfourteen',
+        repo: 'phatbanmenh',
+        branch: 'main',
+        path: 'products.json',
+        token: ''
+      };
+    } catch (e) {
+      return { owner: 'kidfourteen', repo: 'phatbanmenh', branch: 'main', path: 'products.json', token: '' };
+    }
+  });
+  const [cldCfg, setCldCfg] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.CLD_CFG) || 'null') || {
+        cloud: '',
+        preset: 'phatbanmenh'
+      };
+    } catch (e) {
+      return { cloud: '', preset: 'phatbanmenh' };
+    }
+  });
+  const [bankCfg, setBankCfg] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.BANK_CFG) || 'null') || {
+        bankName: 'TECHCOMBANK',
+        accountNo: '2009222222',
+        accountName: 'HOANG THI HANH'
+      };
+    } catch (e) {
+      return { bankName: 'TECHCOMBANK', accountNo: '2009222222', accountName: 'HOANG THI HANH' };
+    }
+  });
+  const [tgCfg, setTgCfg] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.TG_CFG) || 'null') || {
+        token: '',
+        chatId: '',
+        enabled: false
+      };
+    } catch (e) {
+      return { token: '', chatId: '', enabled: false };
+    }
+  });
+  const [sheetCfg, setSheetCfg] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.SHEET_CFG) || 'null') || {
+        webhookUrl: '',
+        enabled: false
+      };
+    } catch (e) {
+      return { webhookUrl: '', enabled: false };
+    }
+  });
+
+  // Chuyển tab mượt mà hoặc xem tất cả cực gọn
+  const [birthYear, setBirthYear] = useState('1996');
+  const [filter2027, setFilter2027] = useState('ALL'); // ALL, HAN_2027, CAT_2027
+
+  // Modal Chi tiết & Đặt thỉnh (Hỗ trợ COD 19k ship hoặc VietQR Freeship + Tặng quà phong thuỷ)
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedBuddha, setSelectedBuddha] = useState(null);
+  const [orderForm, setOrderForm] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    birthYear: '1996',
+    qty: 1,
+    payMethod: 'bank', // 'bank' (VietQR Freeship + Quà) | 'cod' (Ship 19.000đ)
+    note: ''
+  });
+  const [orderStep, setOrderStep] = useState('form'); // 'form' | 'qr' | 'success'
+  const [createdOrder, setCreatedOrder] = useState(null);
+
+  // Admin Login & Admin Panel State
+  const [logoClicks, setLogoClicks] = useState(0);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [loginForm, setLoginForm] = useState({ user: '', pass: '', error: '' });
+  const [isAdminView, setIsAdminView] = useState(false);
+  const [adminTab, setAdminTab] = useState('products'); // 'products' | 'orders' | 'settings'
+  const [editingBuddha, setEditingBuddha] = useState(null);
+  const [uploadingSlot, setUploadingSlot] = useState(null);
+  const [toastMsg, setToastMsg] = useState('');
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3200);
+  };
+
+  // Tự động tải products.json từ GitHub khi khởi chạy (nếu repo đã có file)
+  useEffect(() => {
+    if (!ghCfg.owner || !ghCfg.repo) return;
+    const rawUrl = `https://raw.githubusercontent.com/${ghCfg.owner}/${ghCfg.repo}/${ghCfg.branch || 'main'}/${ghCfg.path || 'products.json'}?t=${Date.now()}`;
+    fetch(rawUrl, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (data && typeof data === 'object') {
+          setBuddhas(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(k => {
+              if (data[k]) {
+                next[k] = {
+                  ...next[k],
+                  ...data[k],
+                  price: Number(data[k].price) || DEFAULT_PRICE,
+                  oldPrice: Number(data[k].oldPrice) || DEFAULT_OLD_PRICE,
+                  material: data[k].material || DEFAULT_MATERIAL
+                };
+              }
+            });
+            localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(next));
+            return next;
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const destinyResult = useMemo(() => calculateDestiny(birthYear, buddhas), [birthYear, buddhas]);
+
+  const filtered2027List = useMemo(() => {
+    if (filter2027 === 'HAN_2027') {
+      return ZODIAC_DATA_2027.filter(z => z.statusType === 'danger' || z.statusType === 'warning');
+    }
+    if (filter2027 === 'CAT_2027') {
+      return ZODIAC_DATA_2027.filter(z => z.statusType === 'excellent' || z.statusType === 'good');
+    }
+    return ZODIAC_DATA_2027;
+  }, [filter2027]);
+
+  // Tính toán chi phí đơn hàng
+  const orderPricing = useMemo(() => {
+    const unitPrice = Number(selectedBuddha?.price) || DEFAULT_PRICE;
+    const qty = Math.max(1, Number(orderForm.qty) || 1);
+    const subtotal = unitPrice * qty;
+    const isBankQR = orderForm.payMethod === 'bank';
+    const shipFee = isBankQR ? 0 : DEFAULT_SHIP_FEE;
+    const total = subtotal + shipFee;
+    const bonusGift = isBankQR
+      ? 'Miễn phí ship (0đ) + Tặng 01 Quà Phong Thuỷ Ngẫu Nhiên'
+      : 'Không áp dụng (Phí ship COD 19.000đ)';
+    return { unitPrice, qty, subtotal, isBankQR, shipFee, total, bonusGift };
+  }, [selectedBuddha, orderForm.qty, orderForm.payMethod]);
+
+  const handleLogoClick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setLogoClicks(prev => {
+      const next = prev + 1;
+      if (next >= 5) {
+        setLoginModalOpen(true);
+        return 0;
+      }
+      return next;
+    });
+  };
+
+  const openModal = (buddha, yearPrefill) => {
+    const latestBuddha = buddhas[buddha.id] || buddha;
+    setSelectedBuddha(latestBuddha);
+    setOrderForm(prev => ({
+      ...prev,
+      birthYear: yearPrefill ? String(yearPrefill) : prev.birthYear,
+      qty: 1,
+      payMethod: 'bank'
+    }));
+    setOrderStep('form');
+    setModalOpen(true);
+  };
+
+  // Gửi thông báo Telegram & Google Sheet
+  const notifyExternalServices = (newOrder) => {
+    if (tgCfg.enabled && tgCfg.token && tgCfg.chatId) {
+      const msg = [
+        '📿 *ĐƠN THỈNH PHẬT BẢN MỆNH MỚI*',
+        `🆔 Mã đơn: ${newOrder.id}`,
+        `👤 Khách hàng: ${newOrder.name}`,
+        `📞 SĐT/Zalo: ${newOrder.phone}`,
+        `📍 Địa chỉ: ${newOrder.address}`,
+        `🎂 Năm sinh: ${newOrder.birthYear}`,
+        `✨ Vật phẩm: ${newOrder.buddhaName} (x${newOrder.qty})`,
+        `🪨 Chất liệu: Đồng Thau Nguyên Khối - Viền Đá Ngọc Thạch Anh / Lục Bảo`,
+        `🚚 Phí ship: ${newOrder.shipFee === 0 ? 'MIỄN PHÍ (Chuyển khoản QR)' : formatVND(newOrder.shipFee)}`,
+        `🎁 Quà tặng: ${newOrder.freeGift}`,
+        `💰 *TỔNG THANH TOÁN: ${formatVND(newOrder.total)}*`,
+        `💳 Hình thức: ${newOrder.payMethod === 'bank' ? '🏦 Chuyển khoản VietQR (Freeship + Tặng quà)' : '💵 COD Nhận hàng thanh toán'}`
+      ].join('\n');
+
+      fetch(`https://api.telegram.org/bot${tgCfg.token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: tgCfg.chatId, text: msg, parse_mode: 'Markdown' })
+      }).catch(() => {});
+    }
+
+    if (sheetCfg.enabled && sheetCfg.webhookUrl) {
+      const body = new URLSearchParams();
+      body.append('id', newOrder.id);
+      body.append('time', newOrder.time);
+      body.append('name', newOrder.name);
+      body.append('phone', newOrder.phone);
+      body.append('address', newOrder.address);
+      body.append('note', `${newOrder.note || ''} | Năm sinh: ${newOrder.birthYear} | Quà: ${newOrder.freeGift}`);
+      body.append('items', `${newOrder.buddhaName} x${newOrder.qty}`);
+      body.append('subtotal', String(newOrder.subtotal));
+      body.append('ship', String(newOrder.shipFee));
+      body.append('total', String(newOrder.total));
+      body.append('payMethod', newOrder.payMethod === 'bank' ? 'VietQR (Freeship + Tặng quà)' : 'COD');
+      body.append('payStatus', newOrder.payStatus);
+      fetch(sheetCfg.webhookUrl, { method: 'POST', mode: 'no-cors', body }).catch(() => {});
+    }
+  };
+
+  const handleOrderSubmit = (e) => {
+    e.preventDefault();
+    if (!orderForm.phone.trim() || !orderForm.name.trim() || !orderForm.address.trim()) {
+      showToast('Vui lòng điền Họ tên, Số điện thoại và Địa chỉ nhận hàng!');
+      return;
+    }
+
+    const newOrder = {
+      id: '#PBM' + Date.now().toString().slice(-4),
+      time: new Date().toLocaleString('vi-VN'),
+      name: orderForm.name.trim(),
+      phone: orderForm.phone.trim(),
+      address: orderForm.address.trim(),
+      birthYear: orderForm.birthYear,
+      note: orderForm.note.trim(),
+      buddhaId: selectedBuddha.id,
+      buddhaName: selectedBuddha.fullName,
+      qty: orderPricing.qty,
+      unitPrice: orderPricing.unitPrice,
+      subtotal: orderPricing.subtotal,
+      shipFee: orderPricing.shipFee,
+      total: orderPricing.total,
+      payMethod: orderForm.payMethod,
+      freeGift: orderPricing.isBankQR ? 'Tặng 01 món quà phong thuỷ ngẫu nhiên + Freeship' : 'Không',
+      payStatus: 'Chờ xác nhận'
+    };
+
+    setCreatedOrder(newOrder);
+
+    if (orderForm.payMethod === 'bank') {
+      setOrderStep('qr');
+    } else {
+      finalizeOrder(newOrder);
+    }
+  };
+
+  const finalizeOrder = (orderObj) => {
+    const updated = [orderObj, ...orders];
+    setOrders(updated);
+    try { localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated)); } catch (e) {}
+    notifyExternalServices(orderObj);
+    setOrderStep('success');
+  };
+
+  // ==========================================
+  // 5. CHỨC NĂNG ADMIN: UPLOAD CLOUDINARY & SYNC GITHUB
+  // ==========================================
+  const handleAdminLogin = (e) => {
+    e.preventDefault();
+    const ok = ADMIN_ACCOUNTS.some(
+      acc => acc.user === loginForm.user.trim() && acc.pass === loginForm.pass
+    );
+    if (ok) {
+      setLoginModalOpen(false);
+      setIsAdminView(true);
+      setLoginForm({ user: '', pass: '', error: '' });
+      showToast('✅ Đăng nhập Quản trị phatbanmenh thành công!');
+    } else {
+      setLoginForm(prev => ({ ...prev, error: 'Sai tài khoản hoặc mật khẩu (phatbanmenh / 123123123)' }));
+    }
+  };
+
+  const resizeAndUploadImage = async (file, slotIndex) => {
+    if (!file || !editingBuddha) return;
+    setUploadingSlot(slotIndex);
+    try {
+      // Nén ảnh WebP trước khi upload
+      const blob = await new Promise((resolve) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const maxDim = 1000;
+          let w = img.width, h = img.height;
+          if (w > maxDim || h > maxDim) {
+            const r = Math.min(maxDim / w, maxDim / h);
+            w = Math.round(w * r);
+            h = Math.round(h * r);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          canvas.toBlob(b => resolve(b), 'image/webp', 0.86);
+        };
+        img.src = url;
+      });
+
+      let imageUrl = '';
+      if (cldCfg.cloud && cldCfg.preset) {
+        const fd = new FormData();
+        fd.append('file', blob);
+        fd.append('upload_preset', cldCfg.preset);
+        fd.append('folder', 'phatbanmenh');
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cldCfg.cloud}/image/upload`, {
+          method: 'POST',
+          body: fd
+        });
+        if (res.ok) {
+          const data = await res.json();
+          imageUrl = data.secure_url;
+        }
+      }
+
+      // Fallback base64 nếu preset mới chưa kịp tạo trên Cloudinary
+      if (!imageUrl) {
+        imageUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target.result);
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      setEditingBuddha(prev => {
+        const nextImgs = [...(prev.images || [])];
+        nextImgs[slotIndex] = imageUrl;
+        return { ...prev, images: nextImgs };
+      });
+      showToast('📸 Đã tải ảnh lên thành công!');
+    } catch (err) {
+      showToast('⚠️ Lỗi tải ảnh: ' + err.message);
+    } finally {
+      setUploadingSlot(null);
+    }
+  };
+
+  const syncProductsToGithub = async (updatedBuddhas) => {
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updatedBuddhas));
+    if (!ghCfg.token || !ghCfg.owner || !ghCfg.repo) {
+      showToast('💾 Đã lưu trên trình duyệt (Chưa điền GitHub Token)');
+      return;
+    }
+
+    try {
+      const apiUrl = `https://api.github.com/repos/${ghCfg.owner}/${ghCfg.repo}/contents/${ghCfg.path || 'products.json'}`;
+      let sha = null;
+      const headRes = await fetch(`${apiUrl}?ref=${ghCfg.branch || 'main'}`, {
+        headers: { Authorization: `token ${ghCfg.token}`, Accept: 'application/vnd.github+json' }
+      });
+      if (headRes.ok) {
+        const headJson = await headRes.json();
+        sha = headJson.sha;
+      }
+
+      const contentB64 = btoa(unescape(encodeURIComponent(JSON.stringify(updatedBuddhas, null, 2))));
+      const body = {
+        message: 'Update products.json (phatbanmenh)',
+        content: contentB64,
+        branch: ghCfg.branch || 'main'
+      };
+      if (sha) body.sha = sha;
+
+      const putRes = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${ghCfg.token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (putRes.ok) {
+        showToast('☁️ Đã lưu & đồng bộ products.json lên GitHub!');
+      } else {
+        showToast('⚠️ Lưu máy thành công, nhưng lỗi đẩy GitHub: ' + putRes.status);
+      }
+    } catch (e) {
+      showToast('⚠️ Lỗi kết nối GitHub: ' + e.message);
+    }
+  };
+
+  const handleSaveEditedBuddha = async () => {
+    if (!editingBuddha) return;
+    const next = {
+      ...buddhas,
+      [editingBuddha.id]: {
+        ...editingBuddha,
+        price: Number(editingBuddha.price) || DEFAULT_PRICE,
+        oldPrice: Number(editingBuddha.oldPrice) || DEFAULT_OLD_PRICE,
+        images: (editingBuddha.images || []).filter(Boolean)
+      }
+    };
+    setBuddhas(next);
+    setEditingBuddha(null);
+    await syncProductsToGithub(next);
+  };
+
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // =========================================================
+  // GIAO DIỆN QUẢN TRỊ ADMIN (KHI ĐĂNG NHẬP phatbanmenh / 123123123)
+  // =========================================================
+  if (isAdminView) {
+    return (
+      <div className="min-h-screen bg-[#0B0B0C] text-stone-100 font-sans">
+        {toastMsg && (
+          <div className="fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl bg-amber-500 text-stone-950 font-bold text-xs shadow-2xl">
+            {toastMsg}
+          </div>
+        )}
+
+        <header className="bg-[#14110F] border-b border-amber-500/20 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-amber-400" />
+            <div>
+              <h1 className="font-bold text-base text-amber-300">ADMIN PANEL • PHATBANMENH</h1>
+              <p className="text-[11px] text-stone-400">Quản lý 8 Mặt Phật Đồng Thau Nguyên Khối • Server GitHub & Cloudinary</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {[
+              { id: 'products', label: '📿 8 Mặt Phật & Up Ảnh' },
+              { id: 'orders', label: `📦 Đơn Hàng (${orders.length})` },
+              { id: 'settings', label: '⚙️ Server GitHub & Cài Đặt' }
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setAdminTab(t.id)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  adminTab === t.id ? 'bg-amber-500 text-stone-950' : 'bg-stone-900 text-stone-300 hover:bg-stone-800'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+            <button
+              onClick={() => setIsAdminView(false)}
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 ml-2"
+            >
+              ← Về Trang Shop
+            </button>
+          </div>
+        </header>
+
+        <div className="max-w-6xl mx-auto p-6">
+          {/* TAB 1: QUẢN LÝ 8 MẶT PHẬT & UPLOAD ẢNH */}
+          {adminTab === 'products' && (
+            <div className="space-y-6">
+              <div className="p-4 rounded-2xl bg-[#161311] border border-amber-500/25 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-300">Đồng bộ giá & chất liệu mặc định toàn shop</h2>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Chất liệu: <strong className="text-stone-200">{DEFAULT_MATERIAL}</strong> • Giá: <strong className="text-amber-400">349.000 ₫</strong> (Gốc 999.000 ₫)
+                  </p>
+                </div>
+                <button
+                  onClick={() => syncProductsToGithub(buddhas)}
+                  className="px-4 py-2.5 rounded-xl bg-amber-500 text-stone-950 font-bold text-xs flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Đẩy Dữ Liệu Lên GitHub</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Object.values(buddhas).map(b => (
+                  <div key={b.id} className="p-4 rounded-2xl bg-[#14110F] border border-stone-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+                          {b.zodiacBadge}
+                        </span>
+                        <span className="text-xs font-bold text-amber-400">{formatVND(b.price)}</span>
+                      </div>
+                      <ProductVisual buddha={b} size="md" />
+                      <h3 className="font-bold text-sm text-white mt-3">{b.fullName}</h3>
+                      <p className="text-[11px] text-stone-400 mt-1 line-clamp-2">{b.material}</p>
+                      <p className="text-[11px] text-emerald-400 mt-1">
+                        Đã tải lên: {(b.images || []).filter(Boolean).length}/5 ảnh thật
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setEditingBuddha({ ...b, images: [...(b.images || [])] })}
+                      className="mt-4 w-full py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-stone-950 font-bold text-xs border border-amber-500/30 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Up Ảnh & Sửa Giá</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: QUẢN LÝ ĐƠN HÀNG */}
+          {adminTab === 'orders' && (
+            <div className="bg-[#14110F] rounded-2xl border border-stone-800 p-5">
+              <h2 className="text-base font-bold text-amber-300 mb-4">Danh Sách Đơn Đặt Thỉnh ({orders.length})</h2>
+              {orders.length === 0 ? (
+                <p className="text-center py-12 text-xs text-stone-500">Chưa có đơn hàng nào.</p>
+              ) : (
+                <div className="space-y-3">
+                  {orders.map((o, idx) => (
+                    <div key={idx} className="p-4 rounded-xl bg-[#0B0B0C] border border-stone-800 flex flex-wrap items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-amber-300">{o.id}</span>
+                          <span className="text-xs font-bold text-white">{o.name}</span>
+                          <span className="text-xs text-emerald-400 font-semibold">{o.phone}</span>
+                          <span className="text-[11px] text-stone-500">{o.time}</span>
+                        </div>
+                        <p className="text-xs text-stone-300">
+                          📍 {o.address} • Năm sinh: <strong>{o.birthYear}</strong>
+                        </p>
+                        <p className="text-xs text-amber-200">
+                          📿 {o.buddhaName} (x{o.qty}) • Ship: {o.shipFee === 0 ? 'Freeship 0đ' : formatVND(o.shipFee)}
+                        </p>
+                        <p className="text-[11px] text-emerald-400 font-medium">
+                          🎁 Ưu đãi: {o.freeGift}
+                        </p>
+                      </div>
+                      <div className="text-right space-y-1.5">
+                        <div className="text-base font-bold text-amber-400">{formatVND(o.total)}</div>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          o.payMethod === 'bank' ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/30' : 'bg-amber-950 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          {o.payMethod === 'bank' ? '🏦 VietQR (Freeship + Quà)' : '💵 COD (+19k ship)'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: CÀI ĐẶT GITHUB, CLOUDINARY, VIETQR, TELEGRAM */}
+          {adminTab === 'settings' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-5 rounded-2xl bg-[#14110F] border border-stone-800 space-y-4">
+                <h3 className="font-bold text-sm text-amber-300">☁️ 1. Cấu hình Cloudinary & GitHub Server Free</h3>
+                <div>
+                  <label className="block text-[11px] text-stone-400 mb-1">Cloudinary Cloud Name (Tài khoản mới của bạn)</label>
+                  <input
+                    value={cldCfg.cloud}
+                    onChange={e => setCldCfg({ ...cldCfg, cloud: e.target.value.trim() })}
+                    placeholder="Nhập Cloud Name từ Dashboard Cloudinary..."
+                    className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-stone-400 mb-1">Cloudinary Upload Preset (Mặc định: phatbanmenh)</label>
+                  <input
+                    value={cldCfg.preset}
+                    onChange={e => setCldCfg({ ...cldCfg, preset: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-emerald-400 font-bold"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-stone-400 mb-1">GitHub Owner</label>
+                    <input
+                      value={ghCfg.owner}
+                      onChange={e => setGhCfg({ ...ghCfg, owner: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-stone-400 mb-1">GitHub Repo (phatbanmenh)</label>
+                    <input
+                      value={ghCfg.repo}
+                      onChange={e => setGhCfg({ ...ghCfg, repo: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-amber-300 font-bold"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-stone-400 mb-1">GitHub Personal Access Token (PAT)</label>
+                  <input
+                    type="password"
+                    value={ghCfg.token}
+                    onChange={e => setGhCfg({ ...ghCfg, token: e.target.value })}
+                    placeholder="github_pat_..."
+                    className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    localStorage.setItem(STORAGE_KEYS.CLD_CFG, JSON.stringify(cldCfg));
+                    localStorage.setItem(STORAGE_KEYS.GH_CFG, JSON.stringify(ghCfg));
+                    showToast('✅ Đã lưu cấu hình Cloudinary & GitHub!');
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-amber-500 text-stone-950 font-bold text-xs"
+                >
+                  Lưu Cấu Hình Server
+                </button>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-[#14110F] border border-stone-800 space-y-4">
+                <h3 className="font-bold text-sm text-amber-300">🏦 2. Tài Khoản VietQR & Thông Báo Đơn</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-stone-400 mb-1">Ngân hàng (VietQR)</label>
+                    <input
+                      value={bankCfg.bankName}
+                      onChange={e => setBankCfg({ ...bankCfg, bankName: e.target.value.toUpperCase() })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-stone-400 mb-1">Số tài khoản</label>
+                    <input
+                      value={bankCfg.accountNo}
+                      onChange={e => setBankCfg({ ...bankCfg, accountNo: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-stone-400 mb-1">Chủ tài khoản</label>
+                  <input
+                    value={bankCfg.accountName}
+                    onChange={e => setBankCfg({ ...bankCfg, accountName: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-stone-800">
+                  <div>
+                    <label className="block text-[11px] text-stone-400 mb-1">Telegram Bot Token</label>
+                    <input
+                      value={tgCfg.token}
+                      onChange={e => setTgCfg({ ...tgCfg, token: e.target.value, enabled: true })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-stone-400 mb-1">Telegram Chat ID</label>
+                    <input
+                      value={tgCfg.chatId}
+                      onChange={e => setTgCfg({ ...tgCfg, chatId: e.target.value, enabled: true })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    localStorage.setItem(STORAGE_KEYS.BANK_CFG, JSON.stringify(bankCfg));
+                    localStorage.setItem(STORAGE_KEYS.TG_CFG, JSON.stringify(tgCfg));
+                    localStorage.setItem(STORAGE_KEYS.SHEET_CFG, JSON.stringify(sheetCfg));
+                    showToast('✅ Đã lưu thông tin VietQR & Telegram!');
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-emerald-500 text-stone-950 font-bold text-xs"
+                >
+                  Lưu VietQR & Thông Báo
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* MODAL UP ẢNH & CHỈNH SỬA MẶT PHẬT */}
+        {editingBuddha && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-2xl bg-[#181311] border border-amber-500/40 p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-800 pb-3">
+                <h3 className="font-bold text-base text-amber-300">Up Ảnh Thật: {editingBuddha.fullName}</h3>
+                <button onClick={() => setEditingBuddha(null)} className="text-stone-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-xs text-stone-300 mb-2 font-semibold">
+                  Tải lên tối đa 5 ảnh chụp thực tế (Preset: <code className="text-emerald-400">{cldCfg.preset}</code>)
+                </label>
+                <div className="grid grid-cols-5 gap-2.5">
+                  {[0, 1, 2, 3, 4].map(slot => {
+                    const imgUrl = editingBuddha.images?.[slot];
+                    return (
+                      <label
+                        key={slot}
+                        className="aspect-square rounded-xl border-2 border-dashed border-stone-700 hover:border-amber-400 bg-[#0B0B0C] flex flex-col items-center justify-center cursor-pointer relative overflow-hidden"
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => e.target.files?.[0] && resizeAndUploadImage(e.target.files[0], slot)}
+                        />
+                        {uploadingSlot === slot ? (
+                          <span className="text-[10px] text-amber-400 animate-pulse">Đang tải...</span>
+                        ) : imgUrl ? (
+                          <>
+                            <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const nextImgs = [...(editingBuddha.images || [])];
+                                nextImgs[slot] = null;
+                                setEditingBuddha({ ...editingBuddha, images: nextImgs });
+                              }}
+                              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white text-xs flex items-center justify-center"
+                            >
+                              ×
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 text-stone-500" />
+                            <span className="text-[10px] text-stone-500 mt-1">Ảnh {slot + 1}</span>
+                          </>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-stone-400 mb-1">Giá bán (nghìn đ - VD: 349)</label>
+                  <input
+                    type="number"
+                    value={editingBuddha.price}
+                    onChange={e => setEditingBuddha({ ...editingBuddha, price: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-amber-300 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-stone-400 mb-1">Giá gốc (nghìn đ - VD: 999)</label>
+                  <input
+                    type="number"
+                    value={editingBuddha.oldPrice}
+                    onChange={e => setEditingBuddha({ ...editingBuddha, oldPrice: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-stone-300"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-stone-400 mb-1">Chất liệu chế tác</label>
+                <input
+                  value={editingBuddha.material}
+                  onChange={e => setEditingBuddha({ ...editingBuddha, material: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingBuddha(null)}
+                  className="px-4 py-2.5 rounded-xl bg-stone-800 text-stone-300 text-xs font-bold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEditedBuddha}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 font-bold text-xs"
+                >
+                  Lưu & Đồng Bộ GitHub
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // =========================================================
+  // GIAO DIỆN KHÁCH HÀNG (MINIMALIST ZEN LUXURY)
+  // =========================================================
+  return (
+    <div className="min-h-screen bg-[#0B0B0C] text-stone-100 font-sans selection:bg-amber-500 selection:text-black">
+      {toastMsg && (
+        <div className="fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl bg-amber-500 text-stone-950 font-bold text-xs shadow-2xl">
+          {toastMsg}
+        </div>
+      )}
+
+      {/* TOP PROMO BAR: ĐỒNG THAU NGUYÊN KHỐI + FREESHIP QR + QUÀ PHONG THUỶ */}
+      <div className="bg-gradient-to-r from-amber-900/50 via-emerald-950/70 to-amber-900/50 border-b border-amber-500/20 py-2 px-4 text-center text-[11px] sm:text-xs font-medium text-amber-200">
+        <span>✨ Chế tác <strong>Đồng Thau Nguyên Khối</strong> • Viền Đá Ngọc Thạch Anh / Lục Bảo • </span>
+        <span className="text-emerald-300 font-bold">🎁 Chuyển khoản QR: FREESHIP + Tặng 01 Quà Phong Thuỷ Ngẫu Nhiên</span>
+      </div>
+      
+      {/* HEADER TỐI GIẢN */}
+      <header className="sticky top-0 z-40 bg-[#0B0B0C]/90 backdrop-blur-md border-b border-amber-500/15">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={handleLogoClick} title="Click 5 lần để mở Admin">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-700 p-0.5">
+              <div className="w-full h-full bg-[#12100E] rounded-full flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+              </div>
+            </div>
+            <div>
+              <span className="font-bold tracking-wider text-sm sm:text-base bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 bg-clip-text text-transparent block">
+                PHẬT BẢN MỆNH 12 CON GIÁP
+              </span>
+              <span className="text-[10px] text-emerald-400 uppercase tracking-widest block">
+                Đồng Thau Nguyên Khối • Đá Ngọc Thạch Anh / Lục Bảo
+              </span>
+            </div>
+          </div>
+
+          <nav className="hidden md:flex items-center gap-6 text-xs font-semibold uppercase tracking-wider text-stone-300">
+            <button onClick={() => scrollTo('tra-cuu')} className="hover:text-amber-400 transition-colors">1. Tra Cứu Mệnh</button>
+            <button onClick={() => scrollTo('bo-suu-tap')} className="hover:text-amber-400 transition-colors">2. 8 Mặt Phật</button>
+            <button onClick={() => scrollTo('van-han-2027')} className="hover:text-amber-400 transition-colors">3. Vận Hạn 2027</button>
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => openModal(destinyResult?.buddha || buddhas.THIEN_THU, birthYear)}
+              className="px-4 py-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 font-bold text-xs shadow-lg shadow-amber-500/20 hover:brightness-110 transition-all"
+            >
+              Thỉnh Phật • 349K
+            </button>
+            <button
+              onClick={() => setLoginModalOpen(true)}
+              className="p-2 rounded-full bg-stone-900 border border-stone-800 text-stone-400 hover:text-amber-400 transition-colors"
+              title="Quản trị Admin (phatbanmenh)"
+            >
+              <Lock className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ========================================================= */}
+      {/* 1. TRA CỨU TUỔI MỆNH SIÊU TỐC (HERO + COMPACT CARD)       */}
+      {/* ========================================================= */}
+      <section id="tra-cuu" className="py-10 sm:py-14 border-b border-amber-500/10 bg-[radial-gradient(ellipse_at_top,rgba(212,175,55,0.08)_0%,transparent_70%)]">
+        <div className="max-w-5xl mx-auto px-4">
+          
+          {/* Tiêu đề cực gọn */}
+          <div className="text-center mb-8 space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[11px] font-medium">
+              <Gem className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Đồng Thau Nguyên Khối Chuẩn Phong Thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo</span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-bold text-white">
+              Tra Cứu <span className="text-amber-400">Phật Độ Mệnh</span> Theo Năm Sinh
+            </h1>
+          </div>
+
+          {/* Thanh chọn nhanh 12 Con Giáp hoặc Nhập Năm Sinh */}
+          <div className="bg-[#151210] p-4 sm:p-5 rounded-2xl border border-amber-500/25 mb-8">
+            <div className="flex flex-col sm:flex-row items-center gap-3 mb-4">
+              <div className="relative w-full sm:w-64">
+                <input
+                  type="number"
+                  min="1930"
+                  max="2035"
+                  value={birthYear}
+                  onChange={(e) => setBirthYear(e.target.value)}
+                  placeholder="Nhập năm sinh (VD: 1996)"
+                  className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-[#0B0B0C] border border-amber-500/40 text-amber-300 font-bold text-base focus:outline-none focus:border-emerald-400"
+                />
+                <Search className="w-4 h-4 text-amber-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+              </div>
+
+              {/* Chọn nhanh bằng 12 icon Con Giáp */}
+              <div className="flex-1 flex items-center gap-1.5 overflow-x-auto w-full pb-1 sm:pb-0 no-scrollbar">
+                {ZODIAC_DATA_2027.map((z) => {
+                  const isActive = destinyResult?.branch === z.branch;
+                  return (
+                    <button
+                      key={z.branch}
+                      onClick={() => setBirthYear(z.sampleYear)}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all border flex items-center gap-1 ${
+                        isActive
+                          ? 'bg-amber-500 text-stone-950 border-amber-400 shadow'
+                          : 'bg-[#0B0B0C] text-stone-300 border-stone-800 hover:border-amber-500/40'
+                      }`}
+                    >
+                      <span>{z.emoji}</span>
+                      <span>{z.branch}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* KẾT QUẢ TRA CỨU DẠNG COMPACT CARD */}
+            {destinyResult ? (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center bg-[#0F0D0C] p-5 sm:p-6 rounded-xl border border-amber-500/20">
+                
+                {/* Trái: Mặt Phật lớn */}
+                <div className="md:col-span-5 flex flex-col items-center">
+                  <ProductVisual buddha={destinyResult.buddha} size="md" />
+                </div>
+
+                {/* Phải: Thông tin tinh gọn dạng Badges */}
+                <div className="md:col-span-7 space-y-4 text-center md:text-left">
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                    <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold">
+                      {destinyResult.zodiacInfo.emoji} Tuổi {destinyResult.canChi} ({destinyResult.year})
+                    </span>
+                    <span className={`px-3 py-1 rounded-full bg-stone-900 border border-stone-700 text-xs font-semibold ${destinyResult.napAm.color}`}>
+                      Mệnh: {destinyResult.napAm.detail}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-stone-400 uppercase tracking-wider block">Phật Bản Mệnh Độ Trì:</span>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-amber-300 mt-0.5">
+                      {destinyResult.buddha.fullName}
+                    </h2>
+                    <p className="text-xs text-emerald-400 font-medium mt-1">
+                      Chất liệu: {destinyResult.buddha.material}
+                    </p>
+                    <p className="text-xs sm:text-sm text-stone-300 mt-1">
+                      {destinyResult.buddha.shortDesc}
+                    </p>
+                  </div>
+
+                  {/* 3 Tag công năng ngắn gọn */}
+                  <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                    {destinyResult.buddha.tags.map((tag, i) => (
+                      <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Cảnh báo / Vận hạn 2027 1 dòng */}
+                  <div className="p-3 rounded-xl bg-[#181412] border border-stone-800 flex items-center justify-between text-xs">
+                    <span className="text-stone-400">Vận trình Đinh Mùi 2027:</span>
+                    <span className={`font-bold ${
+                      destinyResult.zodiacInfo.statusType === 'excellent' ? 'text-emerald-400' :
+                      destinyResult.zodiacInfo.statusType === 'danger' ? 'text-red-400' :
+                      destinyResult.zodiacInfo.statusType === 'warning' ? 'text-amber-400' : 'text-sky-400'
+                    }`}>
+                      {destinyResult.zodiacInfo.status2027}
+                    </span>
+                  </div>
+
+                  {/* Giá 349.000đ (Gốc 999.000đ) & Nút đặt thỉnh */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-stone-800/80">
+                    <div>
+                      <div className="flex items-center justify-center md:justify-start gap-2">
+                        <span className="text-2xl font-bold text-amber-400">{formatVND(destinyResult.buddha.price)}</span>
+                        <span className="text-xs text-stone-500 line-through">{formatVND(destinyResult.buddha.oldPrice)}</span>
+                        <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30 text-[10px] font-bold">
+                          -65%
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-emerald-400 block mt-0.5">
+                        🎁 Chuyển khoản QR: Freeship + Tặng 1 quà phong thuỷ ngẫu nhiên
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => openModal(destinyResult.buddha, destinyResult.year)}
+                      className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 font-bold text-sm shadow-lg shadow-amber-500/20 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>Thỉnh Vật Phẩm Ngay</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            ) : (
+              <div className="text-center py-6 text-sm text-amber-300">
+                Vui lòng nhập năm sinh từ 1920 - 2040.
+              </div>
+            )}
+          </div>
+
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 2. BỘ SƯU TẬP 8 VỊ PHẬT BẢN MỆNH (GRID 4 CỘT TINH GỌN)     */}
+      {/* ========================================================= */}
+      <section id="bo-suu-tap" className="py-14 border-b border-amber-500/10">
+        <div className="max-w-6xl mx-auto px-4">
+          
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-2">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">CHẾ TÁC CHUẨN NĂNG LƯỢNG PHONG THUỶ</span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mt-0.5">
+                8 Mặt Dây Chuyền <span className="text-amber-400">Phật Bản Mệnh</span>
+              </h2>
+            </div>
+            <p className="text-xs text-stone-300 font-medium">
+              Đồng Thau Nguyên Khối • Viền Đá Ngọc Thạch Anh / Lục Bảo • <span className="text-amber-400 font-bold">349.000 ₫</span> <span className="line-through text-stone-500">999.000 ₫</span>
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {Object.values(buddhas).map((buddha) => (
+              <div
+                key={buddha.id}
+                onClick={() => openModal(buddha)}
+                className="cursor-pointer rounded-2xl bg-[#14110F] border border-amber-500/20 hover:border-amber-400 transition-all p-4 flex flex-col justify-between group"
+              >
+                <div>
+                  {/* Badge Con Giáp & Giá 349K */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-2.5 py-1 rounded-md bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
+                      {buddha.zodiacBadge}
+                    </span>
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-amber-400">{formatVND(buddha.price)}</span>
+                      <span className="text-[10px] text-stone-500 line-through block">{formatVND(buddha.oldPrice)}</span>
+                    </div>
+                  </div>
+
+                  {/* Mặt Phật (Ảnh thật hoặc SVG) */}
+                  <div className="py-2">
+                    <ProductVisual buddha={buddha} size="md" />
+                  </div>
+
+                  {/* Tên Phật & 2 Tag ngắn */}
+                  <div className="text-center mt-2 space-y-2">
+                    <h3 className="text-base font-bold text-amber-300 group-hover:text-white transition-colors">
+                      {buddha.name}
+                    </h3>
+                    <p className="text-[10px] text-emerald-400/90 font-medium">
+                      Đồng Thau Nguyên Khối • Đá Thạch Anh / Lục Bảo
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                      {buddha.tags.slice(0, 2).map((t, idx) => (
+                        <span key={idx} className="text-[11px] px-2 py-0.5 rounded bg-stone-900 text-stone-300 border border-stone-800">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="mt-4 w-full py-2.5 rounded-xl bg-amber-500/15 group-hover:bg-amber-500 text-amber-300 group-hover:text-stone-950 font-bold text-xs border border-amber-500/30 transition-all"
+                >
+                  Thỉnh Ngay • {formatVND(buddha.price)}
+                </button>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 3. VẬN HẠN NĂM ĐINH MÙI 2027 (MINI CARDS CỰC GỌN)         */}
+      {/* ========================================================= */}
+      <section id="van-han-2027" className="py-14 bg-[#110E0C]">
+        <div className="max-w-6xl mx-auto px-4">
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" />
+                NĂM ĐINH MÙI 2027 • THIÊN HÀ THỦY
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mt-0.5">
+                Tra Nhanh Vận Hạn 12 Con Giáp 2027
+              </h2>
+            </div>
+
+            {/* 3 Nút lọc tinh gọn */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'ALL', label: 'Tất Cả (12)' },
+                { id: 'HAN_2027', label: '⚠️ Thái Tuế & Tam Tai (6)' },
+                { id: 'CAT_2027', label: '✨ Tam Hợp & Đại Cát (6)' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setFilter2027(tab.id)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                    filter2027 === tab.id
+                      ? 'bg-amber-500 text-stone-950 border-amber-400'
+                      : 'bg-[#1A1512] text-stone-300 border-stone-800 hover:border-amber-500/40'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Grid 12 Con Giáp Mini Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered2027List.map((z) => {
+              const buddha = buddhas[z.buddhaId] || INITIAL_BUDDHAS[z.buddhaId];
+              return (
+                <div
+                  key={z.branch}
+                  className="p-4 rounded-2xl bg-[#171311] border border-stone-800 hover:border-amber-500/40 transition-all flex flex-col justify-between gap-3"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{z.emoji}</span>
+                        <span className="font-bold text-base text-white">Tuổi {z.branch}</span>
+                      </div>
+                      <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                        z.statusType === 'excellent' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' :
+                        z.statusType === 'danger' ? 'bg-red-500/15 text-red-300 border-red-500/30' :
+                        z.statusType === 'warning' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' :
+                        'bg-sky-500/15 text-sky-300 border-sky-500/30'
+                      }`}>
+                        {z.status2027}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-stone-300 leading-relaxed">
+                      {z.tip2027}
+                    </p>
+                  </div>
+
+                  <div className="pt-2.5 border-t border-stone-800/80 flex items-center justify-between">
+                    <span className="text-[11px] text-amber-300 font-medium">
+                      Phật độ: <strong>{buddha.name}</strong>
+                    </span>
+                    <button
+                      onClick={() => openModal(buddha, z.sampleYear)}
+                      className="text-xs font-bold text-emerald-400 hover:text-emerald-300 underline"
+                    >
+                      Thỉnh giải hạn (349K) →
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+      </section>
+
+      {/* FOOTER TỐI GIẢN */}
+      <footer className="py-8 bg-[#070708] border-t border-amber-500/15 text-center text-xs text-stone-500">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <span className="font-bold text-amber-300">PHẬT BẢN MỆNH 12 CON GIÁP</span>
+          <span>Đồng Thau Nguyên Khối • Viền Đá Ngọc Thạch Anh / Lục Bảo • Ship 19K (Freeship + Tặng quà khi CK QR)</span>
+          <button
+            onClick={() => setLoginModalOpen(true)}
+            className="text-stone-400 hover:text-amber-400 underline text-[11px]"
+          >
+            ⚙️ Quản trị (Admin)
+          </button>
+        </div>
+      </footer>
+
+      {/* ========================================================= */}
+      {/* MODAL ĐĂNG NHẬP ADMIN (phatbanmenh / 123123123)            */}
+      {/* ========================================================= */}
+      {loginModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <form onSubmit={handleAdminLogin} className="w-full max-w-xs rounded-2xl bg-[#181311] border border-amber-500/40 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm text-amber-300 flex items-center gap-1.5">
+                <Lock className="w-4 h-4" />
+                <span>Đăng Nhập Admin</span>
+              </h3>
+              <button type="button" onClick={() => setLoginModalOpen(false)} className="text-stone-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div>
+              <label className="block text-[11px] text-stone-400 mb-1">Tài khoản</label>
+              <input
+                value={loginForm.user}
+                onChange={e => setLoginForm({ ...loginForm, user: e.target.value, error: '' })}
+                placeholder="phatbanmenh"
+                className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] text-stone-400 mb-1">Mật khẩu</label>
+              <input
+                type="password"
+                value={loginForm.pass}
+                onChange={e => setLoginForm({ ...loginForm, pass: e.target.value, error: '' })}
+                placeholder="•••••••••"
+                className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-xs text-white"
+              />
+            </div>
+            {loginForm.error && (
+              <p className="text-[11px] text-red-400 font-medium">{loginForm.error}</p>
+            )}
+            <button type="submit" className="w-full py-2.5 rounded-xl bg-amber-500 text-stone-950 font-bold text-xs">
+              Đăng Nhập
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL XEM CHI TIẾT & ĐẶT THỈNH (VIETQR FREESHIP + QUÀ)     */}
+      {/* ========================================================= */}
+      {modalOpen && selectedBuddha && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-md rounded-2xl bg-[#181311] border border-amber-500/40 p-5 sm:p-6 shadow-2xl text-stone-100 my-auto">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-stone-900 text-stone-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* BƯỚC 3: HOÀN TẤT ĐƠN HÀNG */}
+            {orderStep === 'success' && createdOrder ? (
+              <div className="text-center py-6 space-y-3">
+                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
+                <h3 className="text-xl font-bold text-amber-300">Đặt Thỉnh Thành Công! ({createdOrder.id})</h3>
+                <p className="text-xs text-stone-300 leading-relaxed">
+                  Cảm ơn <strong className="text-white">{createdOrder.name}</strong> ({createdOrder.phone}).<br />
+                  Vật phẩm: <strong className="text-amber-300">{createdOrder.buddhaName}</strong> (Đồng Thau Nguyên Khối • Viền Đá Ngọc Thạch Anh / Lục Bảo).
+                </p>
+                <div className="p-3 rounded-xl bg-[#0B0B0C] border border-emerald-500/30 text-xs space-y-1">
+                  <div className="text-emerald-300 font-bold">🎁 {createdOrder.freeGift}</div>
+                  <div className="text-amber-300 font-bold">Tổng thanh toán: {formatVND(createdOrder.total)}</div>
+                </div>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="px-6 py-2.5 rounded-xl bg-amber-500 text-stone-950 font-bold text-xs"
+                >
+                  Hoàn Tất
+                </button>
+              </div>
+            ) : orderStep === 'qr' && createdOrder ? (
+              /* BƯỚC 2: QUÉT MÃ VIETQR ĐỂ NHẬN FREESHIP + QUÀ PHONG THUỶ NGẪU NHIÊN */
+              <div className="space-y-4 text-center">
+                <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-500/30">
+                  🎁 Đã kích hoạt: FREESHIP + Tặng 01 Quà Phong Thuỷ Ngẫu Nhiên
+                </span>
+                <h3 className="text-lg font-bold text-amber-300">Quét Mã VietQR Chuyển Khoản</h3>
+                <div className="bg-white p-3 rounded-2xl w-52 h-52 mx-auto">
+                  <img
+                    src={`https://img.vietqr.io/image/${bankCfg.bankName}-${bankCfg.accountNo}-compact2.png?amount=${createdOrder.total * 1000}&addInfo=${encodeURIComponent(`PBM ${createdOrder.phone}`)}&accountName=${encodeURIComponent(bankCfg.accountName)}`}
+                    alt="VietQR"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="p-3 rounded-xl bg-[#0B0B0C] border border-stone-800 text-left text-xs space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">Ngân hàng:</span>
+                    <strong className="text-white">{bankCfg.bankName}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">Số tài khoản:</span>
+                    <strong className="text-amber-300">{bankCfg.accountNo}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">Chủ TK:</span>
+                    <strong className="text-white">{bankCfg.accountName}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">Số tiền (Đã Freeship):</span>
+                    <strong className="text-emerald-400 text-sm">{formatVND(createdOrder.total)}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">Nội dung CK:</span>
+                    <strong className="text-amber-300">PBM {createdOrder.phone}</strong>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOrderStep('form')}
+                    className="px-4 py-2.5 rounded-xl bg-stone-800 text-stone-300 text-xs font-bold"
+                  >
+                    ← Quay lại
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => finalizeOrder(createdOrder)}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-stone-950 font-bold text-xs"
+                  >
+                    ✓ Tôi Đã Chuyển Khoản Xong
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* BƯỚC 1: FORM ĐẶT THỈNH */
+              <form onSubmit={handleOrderSubmit} className="space-y-3.5">
+                <div className="flex items-center gap-3 pb-3 border-b border-stone-800">
+                  <ProductVisual buddha={selectedBuddha} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase">{selectedBuddha.zodiacBadge}</span>
+                    <h3 className="text-base font-bold text-amber-300 truncate">{selectedBuddha.fullName}</h3>
+                    <p className="text-[11px] text-stone-300 mt-0.5 leading-snug">
+                      Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-base font-bold text-amber-400">{formatVND(selectedBuddha.price)}</span>
+                      <span className="text-xs text-stone-500 line-through">{formatVND(selectedBuddha.oldPrice)}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 font-bold">-65%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thông tin người nhận */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] text-stone-400 mb-1">Họ và Tên *</label>
+                    <input
+                      type="text"
+                      required
+                      value={orderForm.name}
+                      onChange={(e) => setOrderForm({ ...orderForm, name: e.target.value })}
+                      placeholder="Nguyễn Văn A"
+                      className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-stone-400 mb-1">Số ĐT / Zalo *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={orderForm.phone}
+                      onChange={(e) => setOrderForm({ ...orderForm, phone: e.target.value })}
+                      placeholder="0912..."
+                      className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="col-span-2">
+                    <label className="block text-[11px] text-stone-400 mb-1">Địa chỉ nhận vật phẩm *</label>
+                    <input
+                      type="text"
+                      required
+                      value={orderForm.address}
+                      onChange={(e) => setOrderForm({ ...orderForm, address: e.target.value })}
+                      placeholder="Số nhà, đường, quận/huyện, tỉnh..."
+                      className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-stone-400 mb-1">Năm sinh</label>
+                    <input
+                      type="number"
+                      value={orderForm.birthYear}
+                      onChange={(e) => setOrderForm({ ...orderForm, birthYear: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#0B0B0C] border border-stone-700 text-amber-300 font-bold text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Chọn Phương thức thanh toán: QR Freeship + Tặng quà vs COD 19.000đ */}
+                <div className="space-y-2 pt-1">
+                  <label className="block text-[11px] text-stone-400 font-semibold uppercase">Phương thức thanh toán & Ưu đãi:</label>
+                  
+                  <label
+                    onClick={() => setOrderForm({ ...orderForm, payMethod: 'bank' })}
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                      orderForm.payMethod === 'bank'
+                        ? 'bg-emerald-950/50 border-emerald-400'
+                        : 'bg-[#0B0B0C] border-stone-800'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payMethod"
+                      checked={orderForm.payMethod === 'bank'}
+                      onChange={() => setOrderForm({ ...orderForm, payMethod: 'bank' })}
+                      className="mt-0.5 accent-emerald-400"
+                    />
+                    <div className="text-xs">
+                      <div className="font-bold text-emerald-300 flex items-center gap-1.5">
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>Chuyển khoản QR (Khuyên dùng)</span>
+                      </div>
+                      <p className="text-[11px] text-stone-300 mt-0.5">
+                        ✨ <strong className="text-amber-300">FREESHIP (Miễn phí ship 19.000đ)</strong> + <strong className="text-emerald-300">Tặng thêm 01 món quà phong thuỷ ngẫu nhiên</strong>
+                      </p>
+                    </div>
+                  </label>
+
+                  <label
+                    onClick={() => setOrderForm({ ...orderForm, payMethod: 'cod' })}
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                      orderForm.payMethod === 'cod'
+                        ? 'bg-amber-950/30 border-amber-400'
+                        : 'bg-[#0B0B0C] border-stone-800'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payMethod"
+                      checked={orderForm.payMethod === 'cod'}
+                      onChange={() => setOrderForm({ ...orderForm, payMethod: 'cod' })}
+                      className="mt-0.5 accent-amber-400"
+                    />
+                    <div className="text-xs">
+                      <div className="font-bold text-stone-200 flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Thanh toán khi nhận hàng (COD)</span>
+                      </div>
+                      <p className="text-[11px] text-stone-400 mt-0.5">
+                        Kiểm tra hàng trước khi thanh toán • Phí vận chuyển: <strong>19.000 ₫</strong>
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Bảng tóm tắt chi phí */}
+                <div className="p-3 rounded-xl bg-[#0B0B0C] border border-stone-800 text-xs space-y-1.5">
+                  <div className="flex justify-between text-stone-400">
+                    <span>Giá thỉnh vật phẩm ({orderPricing.qty} mặt):</span>
+                    <span className="text-white font-semibold">{formatVND(orderPricing.subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-stone-400">
+                    <span>Phí vận chuyển:</span>
+                    <span className={orderPricing.isBankQR ? 'text-emerald-400 font-bold' : 'text-white'}>
+                      {orderPricing.isBankQR ? 'MIỄN PHÍ (0 ₫)' : formatVND(orderPricing.shipFee)}
+                    </span>
+                  </div>
+                  {orderPricing.isBankQR && (
+                    <div className="flex justify-between text-emerald-300 font-medium">
+                      <span>🎁 Quà tặng kèm:</span>
+                      <span>+01 Quà phong thuỷ ngẫu nhiên</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-bold pt-1.5 border-t border-stone-800">
+                    <span className="text-stone-200">Tổng thanh toán:</span>
+                    <span className="text-amber-400">{formatVND(orderPricing.total)}</span>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 font-bold text-xs sm:text-sm shadow-lg shadow-amber-500/20 hover:brightness-110 transition-all"
+                >
+                  {orderForm.payMethod === 'bank'
+                    ? `Quét QR Đặt Thỉnh (${formatVND(orderPricing.total)} • Freeship + Quà)`
+                    : `Xác Nhận Đặt Thỉnh COD (${formatVND(orderPricing.total)})`}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
