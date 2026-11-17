@@ -90,12 +90,33 @@
 
     const formatVND = (k) => (Math.round(Number(k) || 0) * 1000).toLocaleString('vi-VN') + ' ₫';
 
-    // Mã Google Apps Script chuẩn: Khách hàng đặt đơn không cần GitHub Token, đổ thẳng vào Google Sheet & đồng bộ ngược về Admin
-    const GOOGLE_APPS_SCRIPT_CODE = `// ===== PHAT BAN MENH - Google Sheet Order Webhook (2 Chiều: Nhận đơn từ Khách & Trả đơn về Admin) =====
-// Bước 1: Mở Google Sheet -> Tiện ích mở rộng -> Apps Script -> Xóa code cũ, dán toàn bộ code này vào -> Bấm Lưu (biểu tượng Đĩa mềm)
-// Bước 2: Bấm Triển khai (Deploy) -> Triển khai mới (New deployment) -> Chọn loại: Ứng dụng web (Web app)
-// Bước 3: Chọn "Thực thi dưới dạng: Tôi" và "Ai có quyền truy cập: Bất kỳ ai (Anyone)" -> Bấm Triển khai -> Copy URL Web App dán vào Admin
+    // Mã Google Apps Script chuẩn: Hỗ trợ bấm nút "▷ Chạy" trực tiếp không bao giờ lỗi & Nhận đơn từ mọi máy khách
+    const GOOGLE_APPS_SCRIPT_CODE = `// ===== PHAT BAN MENH - Google Sheet Order Webhook (Chuẩn 100% như mumbigsize.com) =====
+// HƯỚNG DẪN CÀI ĐẶT:
+// 1. Dán toàn bộ code này vào Mã.gs -> Bấm biểu tượng Đĩa mềm (Lưu) -> Bấm nút "▷ Chạy" ở thanh trên cùng để cấp quyền Google Sheet!
+// 2. Bấm nút xanh "Triển khai" (góc trên phải) -> "Triển khai mới" (hoặc Quản lý các mục triển khai -> Chỉnh sửa -> Phiên bản mới)
+// 3. Chọn Loại: "Ứng dụng web" | Thực thi dưới dạng: "Tôi" | Ai có quyền truy cập: "Bất kỳ ai (Anyone)"
+// 4. Copy URL Web App (https://script.google.com/macros/s/.../exec) dán vào Admin phatbanmenh.store
 function recordOrder(p) {
+  // Nếu bạn bấm nút "▷ Chạy" trực tiếp trong Apps Script, tự tạo dữ liệu mẫu để test & cấp quyền luôn!
+  if (!p || typeof p !== 'object') {
+    p = {
+      id: '#TEST_TRUC_TIEP',
+      time: new Date().toLocaleString('vi-VN'),
+      name: 'Test Trực Tiếp Từ Apps Script',
+      phone: '0988888888',
+      address: 'Kiểm tra kết nối Sheet thành công',
+      birthYear: '1996',
+      buddhaName: 'Thiên Thủ Thiên Nhãn Bồ Tát',
+      qty: 1,
+      shipFee: 0,
+      freeGift: 'Freeship + Tặng 01 quà phong thuỷ',
+      total: 349,
+      payMethod: 'Chuyển khoản QR',
+      note: 'Bạn đã bấm nút Chạy thành công!',
+      payStatus: 'Hoạt động tốt'
+    };
+  }
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   if (sheet.getLastRow() === 0) {
     sheet.appendRow([
@@ -108,7 +129,7 @@ function recordOrder(p) {
   }
   sheet.appendRow([
     p.id || '',
-    p.time || '',
+    p.time || new Date().toLocaleString('vi-VN'),
     p.name || '',
     "'" + (p.phone || ''),
     p.address || '',
@@ -710,61 +731,76 @@ function doGet(e) {
         setModalOpen(true);
       };
 
-      // Gửi đơn hàng trực tiếp từ trình duyệt của KHÁCH HÀNG về Google Sheet & Telegram (KHÔNG CẦN GITHUB TOKEN)
+      // Gửi đơn hàng trực tiếp từ trình duyệt của KHÁCH HÀNG về Google Sheet & Telegram (Giống hệt mumbigsize.com)
       const notifyExternalServices = async (newOrder) => {
-        const activeWebhookUrl = (sheetCfg.webhookUrl || '').trim();
+        // Đọc URL mới nhất từ state hoặc localStorage để không bao giờ bị trễ state
+        let activeWebhookUrl = (sheetCfg.webhookUrl || '').trim();
+        if (!activeWebhookUrl) {
+          try {
+            const savedSheet = JSON.parse(localStorage.getItem(STORAGE_KEYS.SHEET_CFG) || 'null');
+            if (savedSheet && savedSheet.webhookUrl) activeWebhookUrl = savedSheet.webhookUrl.trim();
+          } catch (e) {}
+        }
+
         if (activeWebhookUrl) {
           const payMethodLabel = newOrder.payMethod === 'bank' ? 'Chuyển khoản QR (Freeship + Quà)' : 'COD Nhận hàng thanh toán';
-          const payload = {
-            'Mã đơn': newOrder.id || '',
-            'Thời gian': newOrder.time || '',
-            'Họ và Tên': newOrder.name || '',
-            'Số ĐT / Zalo': "'" + (newOrder.phone || ''),
-            'Địa chỉ nhận hàng': newOrder.address || '',
-            'Năm sinh': newOrder.birthYear || '',
-            'Vật phẩm thỉnh': newOrder.buddhaName || '',
-            'Số lượng': String(newOrder.qty || 1),
-            'Phí ship (k)': String(newOrder.shipFee || 0),
-            'Ưu đãi / Quà tặng': newOrder.freeGift || '',
-            'Tổng thanh toán (k)': String(newOrder.total || 0),
-            'Hình thức TT': payMethodLabel,
-            'Ghi chú': newOrder.note || '',
-            'Trạng thái': newOrder.payStatus || 'Mới',
-            // Key tiếng Anh cho Google Apps Script
-            id: newOrder.id || '',
-            time: newOrder.time || '',
-            name: newOrder.name || '',
-            phone: newOrder.phone || '',
-            address: newOrder.address || '',
-            birthYear: newOrder.birthYear || '',
-            buddhaName: newOrder.buddhaName || '',
+          const simpleParams = {
+            id: String(newOrder.id || ''),
+            time: String(newOrder.time || new Date().toLocaleString('vi-VN')),
+            name: String(newOrder.name || ''),
+            phone: String(newOrder.phone || ''),
+            address: String(newOrder.address || ''),
+            birthYear: String(newOrder.birthYear || ''),
+            buddhaName: String(newOrder.buddhaName || ''),
             qty: String(newOrder.qty || 1),
             shipFee: String(newOrder.shipFee || 0),
-            freeGift: newOrder.freeGift || '',
+            freeGift: String(newOrder.freeGift || ''),
             total: String(newOrder.total || 0),
             payMethod: payMethodLabel,
-            note: newOrder.note || '',
-            payStatus: newOrder.payStatus || 'Mới'
+            note: String(newOrder.note || ''),
+            payStatus: String(newOrder.payStatus || 'Mới')
           };
 
           if (activeWebhookUrl.includes('sheetdb.io') || activeWebhookUrl.includes('sheet.best') || activeWebhookUrl.includes('nocodeapi.com')) {
+            const sheetDbRow = {
+              'Mã đơn': simpleParams.id,
+              'Thời gian': simpleParams.time,
+              'Họ và Tên': simpleParams.name,
+              'Số ĐT / Zalo': "'" + simpleParams.phone,
+              'Địa chỉ nhận hàng': simpleParams.address,
+              'Năm sinh': simpleParams.birthYear,
+              'Vật phẩm thỉnh': simpleParams.buddhaName,
+              'Số lượng': simpleParams.qty,
+              'Phí ship (k)': simpleParams.shipFee,
+              'Ưu đãi / Quà tặng': simpleParams.freeGift,
+              'Tổng thanh toán (k)': simpleParams.total,
+              'Hình thức TT': simpleParams.payMethod,
+              'Ghi chú': simpleParams.note,
+              'Trạng thái': simpleParams.payStatus
+            };
             fetch(activeWebhookUrl, {
               method: 'POST',
               keepalive: true,
               headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-              body: JSON.stringify({ data: [payload] })
+              body: JSON.stringify({ data: [sheetDbRow] })
             }).catch(() => {});
           } else {
+            // Chuẩn 100% như mumbigsize.com: Dùng URLSearchParams không đặt custom headers để trình duyệt gửi thẳng sang Google Apps Script
             const body = new URLSearchParams();
-            Object.keys(payload).forEach(k => body.append(k, payload[k]));
+            Object.keys(simpleParams).forEach(k => body.append(k, simpleParams[k]));
+
             fetch(activeWebhookUrl, {
               method: 'POST',
               mode: 'no-cors',
               keepalive: true,
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-              body: body.toString()
+              body: body
             }).catch(() => {
-              fetch(`${activeWebhookUrl}?${body.toString()}`, { method: 'GET', mode: 'no-cors', keepalive: true }).catch(() => {});
+              // Dự phòng bằng GET nếu mạng chặn POST
+              fetch(`${activeWebhookUrl}?${body.toString()}`, {
+                method: 'GET',
+                mode: 'no-cors',
+                keepalive: true
+              }).catch(() => {});
             });
           }
         }
