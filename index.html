@@ -125,11 +125,11 @@
     };
 
     // Mã Google Apps Script mẫu để copy dán vào Google Sheet (Tiện ích mở rộng -> Apps Script)
-    const GOOGLE_APPS_SCRIPT_CODE = `// ===== PHAT BAN MENH - Google Sheet Order Webhook =====
-// Bước 1: Mở Google Sheet -> Tiện ích mở rộng -> Apps Script -> Dán code này vào
-// Bước 2: Bấm Triển khai -> Triển khai mới -> Loại: Ứng dụng web
-// Bước 3: Chọn "Thực thi dưới dạng: Tôi" và "Ai có quyền truy cập: Bất kỳ ai" -> Copy URL Web App
-function doPost(e) {
+    const GOOGLE_APPS_SCRIPT_CODE = `// ===== PHAT BAN MENH - Google Sheet Order Webhook (Hỗ trợ cả POST & GET) =====
+// Bước 1: Mở Google Sheet -> Tiện ích mở rộng -> Apps Script -> Xóa code cũ, dán code này vào -> Bấm biểu tượng Đĩa Mềm (Lưu)
+// Bước 2: Bấm Triển khai (Deploy) -> Triển khai mới (New deployment) -> Loại: Ứng dụng web (Web app)
+// Bước 3: Chọn "Thực thi dưới dạng: Tôi" và "Ai có quyền truy cập: Bất kỳ ai (Anyone)" -> Bấm Triển khai -> Copy URL Web App
+function recordOrder(p) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   if (sheet.getLastRow() === 0) {
     sheet.appendRow([
@@ -140,7 +140,6 @@ function doPost(e) {
     sheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#fde68a');
     sheet.setFrozenRows(1);
   }
-  var p = e.parameter || {};
   sheet.appendRow([
     p.id || '',
     p.time || '',
@@ -157,9 +156,24 @@ function doPost(e) {
     p.note || '',
     p.payStatus || 'Mới'
   ]);
+}
+function doPost(e) {
+  var p = (e && e.parameter) ? e.parameter : {};
+  if (e && e.postData && e.postData.contents) {
+    try {
+      var json = JSON.parse(e.postData.contents);
+      for (var k in json) p[k] = json[k];
+    } catch (err) {}
+  }
+  recordOrder(p);
   return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
 }
-function doGet() {
+function doGet(e) {
+  var p = (e && e.parameter) ? e.parameter : {};
+  if (p.id || p.phone) {
+    recordOrder(p);
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, mode: 'GET' })).setMimeType(ContentService.MimeType.JSON);
+  }
   return ContentService.createTextOutput('OK - Phat Ban Menh Google Sheet Webhook Ready');
 }`;
 
@@ -747,10 +761,11 @@ function doGet() {
       };
 
       // Gửi đơn hàng tự động về Google Sheet Online + GitHub orders.csv + Telegram
-      const notifyExternalServices = (newOrder, updatedOrdersList) => {
-        // 1. Hỗ trợ cả 2 chuẩn: SheetDB.io / Sheet.best (JSON REST API không cần Web App) VÀ Google Apps Script
-        if (sheetCfg.enabled && sheetCfg.webhookUrl) {
-          const url = sheetCfg.webhookUrl.trim();
+      const notifyExternalServices = async (newOrder, updatedOrdersList) => {
+        // 1. Hỗ trợ cả SheetDB.io / Sheet.best VÀ Google Apps Script (Kèm cơ chế keepalive không bao giờ rớt đơn)
+        const activeWebhookUrl = (sheetCfg.webhookUrl || '').trim();
+        if (activeWebhookUrl) {
+          const payMethodLabel = newOrder.payMethod === 'bank' ? 'Chuyển khoản QR (Freeship + Quà)' : 'COD Nhận hàng thanh toán';
           const payload = {
             'Mã đơn': newOrder.id || '',
             'Thời gian': newOrder.time || '',
@@ -763,10 +778,10 @@ function doGet() {
             'Phí ship (k)': String(newOrder.shipFee || 0),
             'Ưu đãi / Quà tặng': newOrder.freeGift || '',
             'Tổng thanh toán (k)': String(newOrder.total || 0),
-            'Hình thức TT': newOrder.payMethod === 'bank' ? 'Chuyển khoản QR (Freeship + Quà)' : 'COD Nhận hàng thanh toán',
+            'Hình thức TT': payMethodLabel,
             'Ghi chú': newOrder.note || '',
             'Trạng thái': newOrder.payStatus || 'Mới',
-            // Các key tiếng Anh tương thích song song
+            // Các key tiếng Anh cho Google Apps Script
             id: newOrder.id || '',
             time: newOrder.time || '',
             name: newOrder.name || '',
@@ -778,26 +793,35 @@ function doGet() {
             shipFee: String(newOrder.shipFee || 0),
             freeGift: newOrder.freeGift || '',
             total: String(newOrder.total || 0),
-            payMethod: newOrder.payMethod === 'bank' ? 'Chuyển khoản QR (Freeship + Quà)' : 'COD Nhận hàng thanh toán',
+            payMethod: payMethodLabel,
             note: newOrder.note || '',
             payStatus: newOrder.payStatus || 'Mới'
           };
 
-          if (url.includes('sheetdb.io') || url.includes('sheet.best') || url.includes('nocodeapi.com')) {
-            fetch(url, {
+          if (activeWebhookUrl.includes('sheetdb.io') || activeWebhookUrl.includes('sheet.best') || activeWebhookUrl.includes('nocodeapi.com')) {
+            fetch(activeWebhookUrl, {
               method: 'POST',
+              keepalive: true,
               headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
               body: JSON.stringify({ data: [payload] })
             }).catch(() => {});
           } else {
             const body = new URLSearchParams();
             Object.keys(payload).forEach(k => body.append(k, payload[k]));
-            fetch(url, { method: 'POST', mode: 'no-cors', body }).catch(() => {});
+            fetch(activeWebhookUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              keepalive: true,
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+              body: body.toString()
+            }).catch(() => {
+              // Dự phòng qua GET nếu trình duyệt chặn POST
+              fetch(`${activeWebhookUrl}?${body.toString()}`, { method: 'GET', mode: 'no-cors', keepalive: true }).catch(() => {});
+            });
           }
         }
 
         // 2. Nếu có GitHub Token, tự động ghi thẳng file orders.csv & orders.json lên GitHub
-        // (Google Sheet dùng công thức =IMPORTDATA("https://raw.githubusercontent.com/kidfourteen/phatbanmenh/main/orders.csv") sẽ tự động nhảy dòng mới!)
         if (ghCfg.token && ghCfg.owner && ghCfg.repo) {
           syncOrdersCsvToGithub(updatedOrdersList || [newOrder, ...orders], true);
         }
@@ -815,42 +839,103 @@ function doGet() {
             `🚚 Phí ship: ${newOrder.shipFee === 0 ? 'MIỄN PHÍ (Chuyển khoản QR)' : formatVND(newOrder.shipFee)}`,
             `🎁 Quà tặng: ${newOrder.freeGift}`,
             `💰 *TỔNG THANH TOÁN: ${formatVND(newOrder.total)}*`,
-            `💳 Hình thức: ${newOrder.payMethod === 'bank' ? '🏦 Chuyển khoản VietQR (Freeship + Tặng quà)' : '💵 COD Nhận hàng thanh toán'}`
+            `💳 Hình thức: ${newOrder.payMethod === 'bank' ? '🏦 Chuyển khoản VietQR (Freeship + Tặng quà)' : '💵 COD Nhận hàng thanh toán'}`,
+            `📌 Trạng thái: ${newOrder.payStatus || 'Mới'}`
           ].join('\n');
 
           fetch(`https://api.telegram.org/bot${tgCfg.token}/sendMessage`, {
             method: 'POST',
+            keepalive: true,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: tgCfg.chatId, text: msg, parse_mode: 'Markdown' })
           }).catch(() => {});
         }
       };
-
-      // Ghi thẳng danh sách đơn hàng thành file orders.csv và orders.json trên GitHub
-      // để Google Sheet đọc trực tiếp bằng công thức =IMPORTDATA() mà KHÔNG CẦN Web App
-      const syncOrdersCsvToGithub = async (ordersToSync, silent = false) => {
-        const list = ordersToSync || orders;
-        if (!ghCfg.token || !ghCfg.owner || !ghCfg.repo) {
-          if (!silent) showToast('⚠️ Vui lòng nhập GitHub Token ở mục Cấu hình Server trước!');
+      const sendTestOrderToSheet = async () => {
+        const url = (sheetCfg.webhookUrl || '').trim();
+        if (!url) {
+          showToast('⚠️ Bạn chưa dán Link Webhook Google Sheet hoặc SheetDB.io vào ô bên trên!');
           return;
         }
-        try {
-          const writeGhFile = async (filePath, rawContent, commitMsg) => {
-            const apiUrl = `https://api.github.com/repos/${ghCfg.owner}/${ghCfg.repo}/contents/${filePath}`;
-            let sha = null;
-            const headRes = await fetch(`${apiUrl}?ref=${ghCfg.branch || 'main'}`, {
-              headers: { Authorization: `token ${ghCfg.token}`, Accept: 'application/vnd.github+json' }
-            });
-            if (headRes.ok) sha = (await headRes.json()).sha;
-            const contentB64 = btoa(unescape(encodeURIComponent(rawContent)));
-            const body = { message: commitMsg, content: contentB64, branch: ghCfg.branch || 'main' };
-            if (sha) body.sha = sha;
-            return fetch(apiUrl, {
-              method: 'PUT',
-              headers: { Authorization: `token ${ghCfg.token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-              body: JSON.stringify(body)
-            });
-          };
+        const testOrder = {
+          id: '#TEST' + Date.now().toString().slice(-4),
+          time: new Date().toLocaleString('vi-VN'),
+          name: 'Khách Test Google Sheet',
+          phone: '0988888888',
+          address: 'Số 1 Đại Cồ Việt, Hà Nội',
+          birthYear: '1996',
+          buddhaName: 'Thiên Thủ Thiên Nhãn Bồ Tát',
+          qty: 1,
+          shipFee: 0,
+          freeGift: 'Tặng 01 món quà phong thuỷ ngẫu nhiên + Freeship',
+          total: 349,
+          payMethod: 'bank',
+          note: 'Đơn test kết nối từ Admin phatbanmenh.store',
+          payStatus: 'Đơn Test'
+        };
+        showToast('⏳ Đang bắn đơn #TEST sang Google Sheet...');
+        await notifyExternalServices(testOrder, [testOrder, ...orders]);
+        setTimeout(() => {
+          showToast('✅ Đã gửi đơn #TEST! Hãy mở file Google Sheet của bạn kiểm tra dòng mới.');
+        }, 1200);
+      };
+
+      // QUAN TRỌNG: LƯU ĐƠN VÀ BẮN VỀ GOOGLE SHEET NGAY KHI BẤM NÚT ĐẶT THỈNH (KHÔNG ĐỢI BƯỚC 2 MỚI LƯU)
+      const handleOrderSubmit = (e) => {
+        e.preventDefault();
+        if (!orderForm.phone.trim() || !orderForm.name.trim() || !orderForm.address.trim()) {
+          showToast('Vui lòng điền Họ tên, Số điện thoại và Địa chỉ nhận hàng!');
+          return;
+        }
+        const newOrder = {
+          id: '#PBM' + Date.now().toString().slice(-4),
+          time: new Date().toLocaleString('vi-VN'),
+          name: orderForm.name.trim(),
+          phone: orderForm.phone.trim(),
+          address: orderForm.address.trim(),
+          birthYear: orderForm.birthYear,
+          note: orderForm.note.trim(),
+          buddhaId: selectedBuddha.id,
+          buddhaName: selectedBuddha.fullName,
+          qty: orderPricing.qty,
+          unitPrice: orderPricing.unitPrice,
+          subtotal: orderPricing.subtotal,
+          shipFee: orderPricing.shipFee,
+          total: orderPricing.total,
+          payMethod: orderForm.payMethod,
+          freeGift: orderPricing.isBankQR ? 'Tặng 01 món quà phong thuỷ ngẫu nhiên + Freeship' : 'Không',
+          payStatus: orderForm.payMethod === 'bank' ? 'Chờ quét QR' : 'COD - Chờ giao'
+        };
+
+        // Lưu đơn ngay lập tức vào danh sách Admin + LocalStorage + Bắn về Google Sheet / GitHub / Telegram
+        const updated = [newOrder, ...orders];
+        setOrders(updated);
+        try { localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated)); } catch (err) {}
+        notifyExternalServices(newOrder, updated);
+
+        setCreatedOrder(newOrder);
+        if (orderForm.payMethod === 'bank') {
+          setOrderStep('qr');
+          showToast('📿 Đã ghi nhận đơn thỉnh! Vui lòng quét mã QR bên dưới.');
+        } else {
+          setOrderStep('success');
+          showToast('🎉 Đặt thỉnh thành công!');
+        }
+      };
+
+      const finalizeOrder = (orderObj) => {
+        // Khi khách bấm "Tôi Đã Chuyển Khoản Xong" ở màn hình QR -> Cập nhật trạng thái đơn đã lưu
+        const confirmedOrder = { ...orderObj, payStatus: 'Đã báo chuyển khoản QR' };
+        const updated = orders.map(o => (o.id === orderObj.id ? confirmedOrder : o));
+        setOrders(updated);
+        try { localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated)); } catch (e) {}
+        if (ghCfg.token && ghCfg.owner && ghCfg.repo) {
+          syncOrdersCsvToGithub(updated, true);
+        }
+        setCreatedOrder(confirmedOrder);
+        setOrderStep('success');
+        showToast('✅ Đã xác nhận chuyển khoản thành công!');
+      };
 
           const csvContent = buildOrdersCsvContent(list);
           await writeGhFile('orders.csv', csvContent, 'Auto-sync orders.csv for Google Sheet IMPORTDATA');
