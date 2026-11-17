@@ -5,7 +5,7 @@
     "accountName": "HOANG THI HANH"
   },
   "sheet": {
-    "webhookUrl": "https://script.google.com/macros/s/AKfycbyf8zZwuhl1y86B3u6hLHc8SVYNWvvUeqnesfrsL_91z3-mXjMMm3QokNesCLEUL-qu/exec",
+    "webhookUrl": "https://script.google.com/macros/s/AKfycbwR1t7lDI-BBuqyOi1xTBl4kcPX1f48TfD-WMqMJFY7AbDm_FJNUKEAVKjKpLlM0zIy/exec",
     "enabled": true
   },
   "telegram": {
@@ -13,5 +13,5 @@
     "chatId": "",
     "enabled": false
   },
-  "updatedAt": "2026-11-17T06:23:17.811Z"
+  "updatedAt": "2026-11-17T06:43:07.751Z"
 }
