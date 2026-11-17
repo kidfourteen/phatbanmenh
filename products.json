@@ -38,7 +38,9 @@
     "price": 349,
     "oldPrice": 999,
     "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
-    "images": []
+    "images": [
+      "https://res.cloudinary.com/qwrz7i1s/image/upload/v1794892379/phatbanmenh/kt3j0oqjuhqmjbv8iuvb.webp"
+    ]
   },
   "VAN_THU": {
     "id": "VAN_THU",
