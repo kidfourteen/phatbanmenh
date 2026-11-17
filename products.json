@@ -79,7 +79,9 @@
     "price": 349,
     "oldPrice": 999,
     "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
-    "images": []
+    "images": [
+      "https://res.cloudinary.com/qwrz7i1s/image/upload/v1794892410/phatbanmenh/tndp54vnzcnvfbc1x6mz.webp"
+    ]
   },
   "DAI_THE_CHI": {
     "id": "DAI_THE_CHI",
@@ -98,7 +100,9 @@
     "price": 349,
     "oldPrice": 999,
     "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
-    "images": []
+    "images": [
+      "https://res.cloudinary.com/qwrz7i1s/image/upload/v1794892418/phatbanmenh/id5jyuiavnwrqhrjesii.webp"
+    ]
   },
   "NHU_LAI_DAI_NHAT": {
     "id": "NHU_LAI_DAI_NHAT",
@@ -118,7 +122,9 @@
     "price": 349,
     "oldPrice": 999,
     "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
-    "images": []
+    "images": [
+      "https://res.cloudinary.com/qwrz7i1s/image/upload/v1794892427/phatbanmenh/ydwysvvzjcyb5yaiabym.webp"
+    ]
   },
   "BAT_DONG_MINH_VUONG": {
     "id": "BAT_DONG_MINH_VUONG",
@@ -137,7 +143,9 @@
     "price": 349,
     "oldPrice": 999,
     "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
-    "images": []
+    "images": [
+      "https://res.cloudinary.com/qwrz7i1s/image/upload/v1794892437/phatbanmenh/xz1vqmk1ndpl2ubycnr3.webp"
+    ]
   },
   "PHAT_A_DI_DA": {
     "id": "PHAT_A_DI_DA",
@@ -157,6 +165,8 @@
     "price": 349,
     "oldPrice": 999,
     "material": "Đồng Thau Nguyên Khối chuẩn năng lượng phong thuỷ • Viền Đá Ngọc Thạch Anh / Lục Bảo",
-    "images": []
+    "images": [
+      "https://res.cloudinary.com/qwrz7i1s/image/upload/v1794892449/phatbanmenh/zn7hs7yawnmhsahrfb1f.webp"
+    ]
   }
 }
